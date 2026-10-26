@@ -5,6 +5,7 @@ const baseURL = `http://127.0.0.1:4173${process.env.VITE_BASE_PATH || '/'}`;
 
 export default defineConfig({
   testDir: './tests', fullyParallel: false, workers: 1,
+  reporter: process.env.CI ? [['github'], ['list']] : [['list']],
   timeout: 90_000, expect: { timeout: 10_000 },
   use: {
     baseURL, viewport: { width: 1440, height: 900 },

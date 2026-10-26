@@ -44,7 +44,8 @@ test('infraestrutura, eventos, políticas, evolução e ônibus persistem no mun
   await page.getByRole('button', { name: 'Pausar simulação', exact: true }).click();
   await page.keyboard.press('v'); await cellClick(page, 23, 19);
   await expect(page.locator('.selection-card')).toContainText('Nível');
-  await expect(page.locator('.selection-card')).toContainText('2 / 3');
+  await expect(page.locator('.selection-address')).toContainText('Quadra 24 · Lote 20');
+  await expect(page.locator('.selection-card .info-rows').getByText(/^[23] \/ 3$/)).toBeVisible();
   await page.screenshot({ path: info.outputPath('cidade-integrada.png') });
   await page.getByRole('button', { name: 'Transporte', exact: true }).click();
   const agents = page.locator('.transport-summary > div').filter({ hasText: 'AGENTES ATIVOS' }).locator('strong');
@@ -55,7 +56,7 @@ test('infraestrutura, eventos, políticas, evolução e ônibus persistem no mun
   const city = await readSlot(page);
   expect(city.version).toBe(2); expect(city.funding.power).toBe(150); expect(city.policies.recycling).toBe(true);
   expect(city.facilities['21,21'].kind).toBe('power'); expect(city.busLines).toHaveLength(1);
-  expect(city.eventHistory[0].choice).toBe(1); expect(city.lots['23,19'].building!.level).toBe(2);
+  expect(city.eventHistory[0].choice).toBe(1); expect(city.lots['23,19'].building!.level).toBeGreaterThanOrEqual(2);
   expect(getMetrics(city).coverage.energy).toBe(1); expect(getMetrics(city).utilities.waste.demand).toBeLessThan(getMetrics({ ...city, policies: { ...city.policies, recycling: false } }).utilities.waste.demand);
   expect(errors).toEqual([]);
 });

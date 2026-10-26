@@ -61,6 +61,12 @@ describe('serviços, infraestrutura e evolução', () => {
     const next = simulateDay(simulateDay(city));
     expect(getMetrics(next).population).toBeGreaterThan(getMetrics(city).population);
   });
+  it('com tempo e cobertura suficientes, a evolução continua até o nível 3', () => {
+    let city = { ...fullyServedCity(), day: 59 };
+    for (let i = 0; i < 36; i++) city = simulateDay(city);
+    expect(city.day).toBe(95);
+    expect(city.lots['23,19'].building!.level).toBe(3);
+  });
   it('empregos em ruas desconectadas não empregam moradores do outro bairro', () => {
     let city = buildRoad(createCity(), { x: 10, z: 20 }, { x: 12, z: 20 }, 'street').city;
     city = buildRoad(city, { x: 20, z: 20 }, { x: 22, z: 20 }, 'street').city;
