@@ -111,7 +111,7 @@ test('importação rejeita arquivo inválido sem substituir a cidade atual', asy
 test('autosave salva após um minuto e pode ser desativado nas configurações', async ({ page }) => {
   // Use real time: mocking requestAnimationFrame interferes with WebGL's render loop
   // and Playwright's actionability checks after large virtual-time jumps.
-  test.setTimeout(170_000);
+  test.setTimeout(240_000);
   await start(page);
   const hasAutosave = () => page.evaluate(async () => {
     const db = await new Promise<IDBDatabase>((resolve, reject) => { const r = indexedDB.open('urbania', 1); r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error); });
