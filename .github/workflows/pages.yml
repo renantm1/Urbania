@@ -37,8 +37,19 @@ jobs:
         run: npm test
       - name: Build production site
         run: npm run build
-      - name: Install Chromium for browser tests
-        run: npx playwright install --with-deps chromium
+      - name: Prepare browser for end-to-end tests
+        shell: bash
+        run: |
+          if command -v google-chrome >/dev/null 2>&1; then
+            urbania_browser_bin="$(command -v google-chrome)"
+          elif command -v chromium >/dev/null 2>&1; then
+            urbania_browser_bin="$(command -v chromium)"
+          else
+            npx playwright install --with-deps chromium
+            exit 0
+          fi
+          "$urbania_browser_bin" --version
+          printf 'URBANIA_CHROMIUM_PATH=%s\n' "$urbania_browser_bin" >> "$GITHUB_ENV"
       - name: Test playable city and saves in the browser
         run: npm run test:e2e
       - name: Upload GitHub Pages artifact

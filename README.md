@@ -136,7 +136,7 @@ npm run test:e2e
 npm run bench
 ```
 
-Playwright usa `/usr/bin/chromium` local quando disponível. É possível definir `URBANIA_CHROMIUM_PATH`. No CI, usa o Chromium instalado pelo Playwright. Gere `dist` antes. A suíte inclui dois intervalos reais de autosave e leva alguns minutos. Falhas geram imagens e traces em `test-results/`.
+Playwright usa `/usr/bin/chromium` local quando disponível. É possível definir `URBANIA_CHROMIUM_PATH`. No CI, prefere Chrome/Chromium já fornecido pela imagem oficial do runner; se ausente, instala o Chromium do Playwright. Gere `dist` antes. A suíte inclui dois intervalos reais de autosave e leva alguns minutos. Falhas geram imagens e traces em `test-results/`.
 
 Os testes cobrem construção, economia, 900 dias de simulação, persistência, migração, infraestrutura, conexões, capacidade, financiamento, evolução, emprego por rede, ônibus, tráfego, políticas e todas as escolhas dos eventos. No navegador são exercitados canvas, salvamento, importação/exportação, serviços, linhas, camadas, eventos e controles de câmera durante a pausa. O benchmark usa uma cidade com centenas de edifícios e vias para medir passos completos da lógica, não apenas leituras de cache.
 
