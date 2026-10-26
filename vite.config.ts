@@ -5,7 +5,7 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
   base: process.env.VITE_BASE_PATH || '/',
   plugins: [react(), tailwindcss()],
-  test: { include: ['src/**/*.test.ts'] },
+  test: { include: ['src/**/*.test.ts'], benchmark: { include: ['src/**/*.bench.ts'] } },
   build: {
     // Three.js is intentionally isolated for browser caching; its engine is ~704 kB.
     chunkSizeWarningLimit: 750,

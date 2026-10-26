@@ -7,6 +7,7 @@ import { deleteSave, exportCity, importCity, listSaves, loadCity, saveCity } fro
 import type { SaveSlot } from '../core/types';
 import { money, number } from './format';
 import { Brand } from './Hud';
+import { ManagementContent } from './Management';
 
 export function Welcome() {
   const [name, setName] = useState('Nova Aurora');
@@ -31,7 +32,7 @@ export function Welcome() {
       <div className="welcome-note"><ShieldCheck size={15} /><span>Sua cidade fica neste navegador.<br /><strong>Sem conta. Sem conexão obrigatória para jogar.</strong></span></div>
     </main>
     <div className="territory-tag"><div className="territory-pin"><Map size={18} /></div><div><small>TERRITÓRIO DISPONÍVEL</small><strong>Vale do Sol</strong><span>Uma nova história começa aqui.</span></div></div>
-    <footer className="welcome-footer"><span>FEITO PARA IMAGINAR. CONSTRUÍDO POR VOCÊ.</span><button onClick={() => state.setModal('help')}>Conheça os controles <ArrowUpRight size={14} /></button><span>URBANIA / VERTICAL SLICE 0.1</span></footer>
+    <footer className="welcome-footer"><span>FEITO PARA IMAGINAR. CONSTRUÍDO POR VOCÊ.</span><button onClick={() => state.setModal('help')}>Conheça os controles <ArrowUpRight size={14} /></button><span>URBANIA / SIMULAÇÃO URBANA 0.3</span></footer>
   </div>;
 }
 
@@ -63,7 +64,7 @@ function Budget() {
   return <ModalShell title="Orçamento municipal" eyebrow="CADA ESCOLHA CONTA" wide>
     <div className="budget-summary"><div><small>EM CAIXA</small><strong>{money(city.treasury)}</strong></div><div><small>SALDO MENSAL PROJETADO</small><strong className={m.balance >= 0 ? 'positive' : 'negative'}>{m.balance >= 0 ? '+' : ''}{money(m.balance)}</strong></div></div>
     <div className="budget-columns"><section><h3><span className="positive">↗</span> Receitas mensais</h3><div className="ledger">{[['IPTU residencial', m.taxes.residential], ['Atividade comercial simulada', m.taxes.commercial], ['Atividade industrial simulada', m.taxes.industrial], ['Transferências de desenvolvimento', m.taxes.grants]].map(([label, value]) => <div key={label}><span>{label}</span><strong>{money(Number(value))}</strong></div>)}<div className="ledger-total"><span>Total de receitas</span><strong className="positive">{money(m.income)}</strong></div></div></section>
-    <section><h3><span className="negative">↘</span> Despesas mensais</h3><div className="ledger">{[['Manutenção da rede viária', m.costs.roads], ['Administração municipal', m.costs.administration], ['Serviços básicos agregados', m.costs.sanitation]].map(([label, value]) => <div key={label}><span>{label}</span><strong>{money(Number(value))}</strong></div>)}<div className="ledger-total"><span>Total de despesas</span><strong>{money(m.expenses)}</strong></div></div></section></div>
+    <section><h3><span className="negative">↘</span> Despesas mensais</h3><div className="ledger">{[['Manutenção da rede viária', m.costs.roads], ['Administração municipal', m.costs.administration], ['Contratos regionais e coleta', m.costs.sanitation], ['Instalações públicas', m.costs.facilities], ['Políticas públicas', m.costs.policies], ['Operação de ônibus', m.costs.transport]].map(([label, value]) => <div key={label}><span>{label}</span><strong>{money(Number(value))}</strong></div>)}<div className="ledger-total"><span>Total de despesas</span><strong>{money(m.expenses)}</strong></div></div></section></div>
     <div className="tax-control"><div><h3>Alíquota da simulação</h3><p>Uma taxa maior aumenta a arrecadação e reduz a atratividade da cidade.</p></div><strong>{city.taxRate}%</strong><input aria-label="Alíquota de impostos" type="range" min="1" max="20" step="1" value={city.taxRate} onChange={e => setTax(Number(e.target.value))} /><div className="range-labels"><span>1% · Incentivo ao crescimento</span><span>20% · Arrecadação máxima</span></div></div>
     <p className="small-note">Modelo econômico de jogo: nem todas as receitas representam tributos municipais reais. O saldo é creditado a cada 30 dias de simulação. Os custos de obras são debitados imediatamente.</p>
     <div className="investment-total"><span>Investimento acumulado em obras</span><strong>{money(city.totalConstruction)}</strong></div>
@@ -118,8 +119,8 @@ function Saves() {
 function Settings() {
   const state = useGame();
   return <ModalShell title="Seu jeito de construir" eyebrow="CONFIGURAÇÕES">
-    <div className="settings-list">{[{ key: 'shadows' as const, title: 'Sombras em tempo real', description: 'Desative para melhorar o desempenho em máquinas mais simples.' }, { key: 'showGrid' as const, title: 'Grade de construção', description: 'Mostra os lotes enquanto uma ferramenta está selecionada.' }, { key: 'autosave' as const, title: 'Salvamento automático', description: 'Guarda a cidade atual a cada 60 segundos.' }].map(setting => <label className="setting-row" key={setting.key}><span><strong>{setting.title}</strong><small>{setting.description}</small></span><input type="checkbox" checked={state[setting.key]} onChange={e => state.setSetting(setting.key, e.target.checked)} /><span className="switch" /></label>)}</div>
-    <div className="settings-about"><Brand compact /><span>Vertical slice · versão 0.1</span><p>O primeiro capítulo do Urbania: ruas, zoneamento, edifícios e uma cidade que cresce com suas escolhas.</p><button className="text-button" onClick={() => state.setModal('help')}>Ajuda e controles <ArrowRight size={14} /></button></div>
+    <div className="settings-list">{[{ key: 'shadows' as const, title: 'Sombras em tempo real', description: 'Desative para melhorar o desempenho em máquinas mais simples.' }, { key: 'showGrid' as const, title: 'Grade de construção', description: 'Mostra os lotes enquanto uma ferramenta está selecionada.' }, { key: 'autosave' as const, title: 'Salvamento automático', description: 'Guarda a cidade atual a cada 60 segundos.' }, { key: 'dayNight' as const, title: 'Ciclo de dia e noite', description: 'A iluminação completa um ciclo a cada 120 dias de simulação.' }, { key: 'audio' as const, title: 'Sons de construção e eventos', description: 'Sinais sonoros procedurais discretos, sem arquivos externos.' }, { key: 'performanceMode' as const, title: 'Modo de desempenho', description: 'Reduz resolução, vegetação decorativa e qualidade das sombras.' }, { key: 'showPerformance' as const, title: 'Monitor de desempenho', description: 'Mostra FPS, geometria e agentes medidos pelo renderizador.' }].map(setting => <label className="setting-row" key={setting.key}><span><strong>{setting.title}</strong><small>{setting.description}</small></span><input type="checkbox" checked={state[setting.key]} onChange={e => state.setSetting(setting.key, e.target.checked)} /><span className="switch" /></label>)}</div>
+    <div className="settings-about"><Brand compact /><span>Simulação urbana · versão 0.3</span><p>Trânsito, serviços, redes, políticas e decisões públicas conectados à simulação de sua cidade.</p><button className="text-button" onClick={() => state.setModal('help')}>Ajuda e controles <ArrowRight size={14} /></button></div>
     <button className="secondary-button" onClick={() => state.setModal('new')}><Plus size={15} /> Começar uma nova cidade</button>
   </ModalShell>;
 }
@@ -129,7 +130,7 @@ function Help() {
     <div className="help-steps">{[{ icon: Route, title: '01 / Conecte', text: 'Escolha Estradas. Clique no início e depois no fim do trecho. Vias se alinham à grade e se conectam automaticamente. Cruzar uma via cria um cruzamento.' }, { icon: House, title: '02 / Dê espaço', text: 'Escolha uma zona e pinte lotes ao lado das ruas. Verde recebe moradores, azul cria comércio e amarelo cria indústria. O acesso à rua é obrigatório.' }, { icon: Users, title: '03 / Veja crescer', text: 'Com a simulação rodando, edifícios surgem a cada três dias conforme a demanda. Moradores chegam, empregos são criados e o saldo é creditado a cada 30 dias.' }].map(({ icon: Icon, title, text }) => <div key={title}><Icon size={23} /><h3>{title}</h3><p>{text}</p></div>)}</div>
     <h3 className="controls-title">Mova-se com liberdade</h3><div className="controls-grid">{[['W A S D / setas', 'Mover a câmera'], ['Scroll', 'Aproximar / afastar'], ['Direito + arrastar', 'Girar e inclinar'], ['Meio + arrastar', 'Deslocar a câmera'], ['Clique esquerdo', 'Construir / selecionar'], ['Clique + arrastar', 'Pintar / demolir'], ['Espaço', 'Pausar / continuar'], ['1 · 2 · 3 · 4 · 5 · V', 'Escolher ferramenta'], ['ESC', 'Cancelar / fechar'], ['F', 'Recentralizar câmera'], ['Ctrl / ⌘ + S', 'Salvar no espaço 1'], ['Ctrl / ⌘ + Shift + S', 'Abrir salvamentos']].map(([key, action]) => <div key={key}><span>{action}</span><kbd>{key}</kbd></div>)}</div>
     <div className="help-tip"><Sparkles size={19} /><p>Comece pequeno: uma rua de 80 metros, moradias de um lado e alguns comércios do outro. As barras RCI indicam onde sua cidade quer crescer. Sem acesso viário, os lotes não se desenvolvem e edifícios perdem moradores.</p></div>
-    <p className="small-note">A Fase 1 usa serviços básicos agregados no orçamento. Energia, água, serviços públicos individuais, veículos e evolução de edifícios serão adicionados nas próximas fases.</p>
+    <p className="small-note">Use a barra de gestão para construir energia, tratamento de água, coleta e serviços. Cada instalação ocupa 2 × 2 lotes e precisa estar conectada às ruas. Contratos regionais atendem 120 unidades iniciais. Os marcos do mapa compacto usam 10% da escala metropolitana; ajuste isso em Marcos. Edifícios evoluem com idade e boa cobertura. Eventos surgem a cada 120 dias e oferecem decisões com consequências reais.</p>
   </ModalShell>;
 }
 
@@ -141,6 +142,7 @@ function NewCity() {
 
 export function Dialogs() {
   const modal = useGame(s => s.modal);
+  if (modal === 'management') return <ModalShell title="Uma cidade que funciona" eyebrow="CENTRAL DA PREFEITURA" wide><ManagementContent /></ModalShell>;
   if (modal === 'budget') return <Budget />;
   if (modal === 'statistics') return <Statistics />;
   if (modal === 'saves') return <Saves />;

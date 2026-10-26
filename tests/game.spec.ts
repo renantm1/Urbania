@@ -1,25 +1,6 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import { PerspectiveCamera, Vector3 } from 'three';
-
-async function cellClick(page: Page, x: number, z: number) {
-  const bounds = await page.locator('canvas').boundingBox();
-  if (!bounds) throw new Error('Canvas não encontrado');
-  const camera = new PerspectiveCamera(42, bounds.width / bounds.height, 1, 1600);
-  camera.position.set(190, 240, 285); camera.lookAt(-26, 0, -6); camera.updateMatrixWorld();
-  const p = new Vector3((x - 27.5) * 8, .35, (z - 27.5) * 8).project(camera);
-  await page.mouse.click(bounds.x + (p.x + 1) * bounds.width / 2, bounds.y + (1 - p.y) * bounds.height / 2);
-}
-
-async function start(page: Page) {
-  await page.goto('./');
-  await expect(page.locator('canvas')).toBeVisible();
-  await page.getByLabel('COMO VAI SE CHAMAR SUA CIDADE?').fill('Aurora do Vale');
-  await page.getByRole('button', { name: 'Começar a construir' }).click();
-  await page.getByRole('button', { name: 'Pausar simulação', exact: true }).click();
-  // Let the camera reset after dismissing the welcome screen.
-  await page.waitForTimeout(500);
-}
+import { cellClick, start } from './helpers';
 
 async function manualSave(page: Page) {
   await page.getByRole('button', { name: 'Salvamentos', exact: true }).click();

@@ -1,38 +1,39 @@
 # URBANIA — Build Your City
 
-City builder 3D para navegador desktop, com modelos procedurais próprios e interface em português. Este repositório implementa a **Fase 1: vertical slice jogável**, conforme a especificação. Não é uma implementação completa das quatro fases.
+Simulador urbano 3D para navegador desktop. **Versão 0.3:** trânsito, serviços públicos, infraestrutura, evolução de edifícios, políticas, eventos e transporte público integrados à economia. Modelos procedurais próprios, interface em português e salvamento local.
 
-A especificação original está preservada em [docs/PROJECT.md](docs/PROJECT.md).
+A [especificação original](docs/PROJECT.md) está preservada. O desenvolvimento segue os recortes por fases: a Fase 1 foi publicada inicialmente; esta versão adiciona os sistemas das Fases 2 e 3 e melhorias de desempenho e apresentação da Fase 4. Os limites desta implementação estão descritos ao final, sem tratar funcionalidades futuras como prontas.
 
 ## Executar
 
-Requisitos: **Node.js 22.12+ ou 24 LTS**, npm e navegador desktop moderno com **WebGL 2** e aceleração de hardware. Não exige backend, chaves de API, conta ou serviços externos.
+Requisitos: **Node.js 24**, npm e navegador desktop moderno com **WebGL 2**. Não exige backend, conta, banco remoto ou chaves de API.
 
 ```bash
 npm ci
 npm run dev
 ```
 
-O Vite informa no terminal o endereço local. Use uma janela de pelo menos 1.024 px e um mouse. Para gerar e servir a versão de produção:
+O Vite informa o endereço local. Use uma janela de pelo menos 1.024 px e um mouse. Para produção:
 
 ```bash
 npm run build
 npm run preview
 ```
 
-O jogo não carrega fontes, texturas nem modelos de serviços externos. Depois de o aplicativo e seus arquivos serem carregados, a simulação não depende de rede. Não há service worker: abrir a página do zero ainda requer acesso ao servidor que a hospeda.
+Todos os modelos, ícones e sons são locais ou procedurais. Não há fontes, texturas ou modelos carregados de serviços externos. Depois de carregar a página e seus arquivos, o gameplay não precisa de rede. Não há service worker: abrir a página do zero ainda precisa do servidor.
 
-## Como jogar
+## Começar uma cidade
 
-1. Dê um nome à cidade e escolha **Começar a construir**. O território começa vazio, com R$ 2.000.000.
-2. Escolha **Estradas**. Clique no ponto inicial e depois no final. O trecho se alinha ao eixo predominante da grade. Vias que se encontram ou cruzam se conectam automaticamente.
-3. Pinte zonas **residenciais** ao lado das ruas. Use zonas **comerciais** e **industriais** para criar empregos. A barra RCI mostra a demanda calculada da cidade.
-4. Deixe o tempo avançar. Edifícios começam a surgir a cada três dias, conforme a demanda, e residências recebem moradores gradualmente. A construção de edifícios é privada: a prefeitura paga pelas ruas e pelo zoneamento.
-5. Abra **Orçamento** para ver as receitas e despesas e ajustar a alíquota de simulação. O saldo projetado é creditado ao caixa a cada **30 dias**. Obras têm cobrança imediata.
-6. Use **Inspecionar** e clique em um lote ou via para consultar seus dados. Sem acesso viário, um lote não se desenvolve; residências existentes perdem moradores.
-7. Salve em um dos três espaços locais ou exporte um JSON. O autosave usa um quarto espaço, substituído a cada minuto pela cidade atual.
+1. Dê um nome e comece com **R$ 2.000.000**. O território tem 56 × 56 lotes de 8 m.
+2. Escolha **Estradas**, clique no início e no fim do trecho. O alinhamento é feito pelo eixo predominante; cruzamentos se conectam automaticamente.
+3. Pinte zonas **residenciais**, **comerciais** e **industriais** próximas às ruas. Edifícios privados surgem a cada três dias conforme demanda, acesso e infraestrutura. A prefeitura paga pelo zoneamento, não pelos edifícios privados.
+4. Avance a simulação e equilibre moradias e empregos. As barras RCI indicam demanda por **novos lotes**. Mesmo com demanda residencial zero, casas existentes podem receber moradores se houver atratividade, serviços e empregos.
+5. Use **Energia e água** para ampliar a infraestrutura. Os contratos regionais iniciais atendem 120 unidades de consumo; não sustentam uma cidade grande sozinhos.
+6. Em **Serviços públicos**, instale escolas, hospital, segurança, bombeiros, prefeitura e parques. Uma instalação ocupa **2 × 2 lotes livres** e precisa de acesso à rua. O círculo de prévia mostra seu alcance.
+7. Acompanhe o orçamento, as coberturas e os alertas. A rede viária precisa estar conectada: energia, serviços e empregos em outra rede isolada não resolvem os problemas do bairro.
+8. Use **Marcos** para ver os desbloqueios, **Políticas** para mudar prioridades, **Mapas** para investigar lotes e **Eventos** para responder a decisões municipais.
 
-Zonear longe de ruas é permitido, mas esses lotes ficam aguardando acesso viário. Não é possível construir na água, fora do mapa ou sobre um edifício. Demolir uma zona sem edifício é gratuito; remover uma via ou edifício custa R$ 180 por célula. A demolição remove o lote inteiro, incluindo seu zoneamento. Trocar um tipo de via cobra a diferença absoluta de custo e não gera reembolso.
+O tempo usa meses de 30 dias, começando em janeiro de 2026. Em 1×, um segundo ativo equivale a um dia. Velocidades: 1×, 2× e 4×. Janelas, aba oculta e o botão de pausa interrompem a simulação. A câmera continua funcionando durante a pausa. Novos eventos abrem a central da prefeitura e pausam o tempo enquanto a janela está aberta; é possível fechar a janela e decidir depois.
 
 ## Controles
 
@@ -45,79 +46,103 @@ Zonear longe de ruas é permitido, mas esses lotes ficam aguardando acesso viár
 | Construir / selecionar | Clique esquerdo |
 | Pintar zonas / demolir | Clique esquerdo + arrastar |
 | Pausar / continuar | Espaço |
-| Cancelar trecho / ferramenta / fechar janela | ESC |
-| Rua / residencial / comercial / industrial / demolir | 1 / 2 / 3 / 4 / 5 |
+| Cancelar trecho, ferramenta ou janela | ESC |
+| Estradas / residencial / comercial / industrial / demolição | 1 / 2 / 3 / 4 / 5 |
 | Inspecionar | V |
 | Recentralizar câmera | F |
-| Salvar diretamente no espaço 1 (substitui o conteúdo) | Ctrl+S / Cmd+S |
+| Salvar diretamente no espaço 1, substituindo seu conteúdo | Ctrl+S / Cmd+S |
 | Abrir salvamentos | Ctrl+Shift+S / Cmd+Shift+S |
 
-O relógio usa meses de 30 dias, começando em janeiro de 2026. Em 1×, cada segundo ativo corresponde a um dia. A simulação pausa ao abrir janelas, ocultar a aba ou usar o botão de pausa. A velocidade pode ser 1×, 2× ou 4×. A câmera continua livre enquanto o tempo está pausado.
+Ruas de bairro custam R$ 150/m; avenidas, R$ 300/m. Cada célula tem 8 m. Zonear custa R$ 120 por lote. Demolir uma via, um edifício ou uma instalação pública custa R$ 180; limpar uma zona vazia é gratuito, inclusive se o caixa estiver negativo. A demolição de qualquer célula de uma instalação remove toda a instalação e suas linhas associadas. Edifícios existentes precisam ser demolidos antes de trocar o zoneamento. Não se constrói na água, fora do mapa nem sobre construções existentes. Trocar um tipo de via cobra a diferença absoluta de custo e não gera reembolso.
 
-## Sistemas implementados
+## Sistemas urbanos
 
-- Território de 56 × 56 lotes de 8 m; terreno, rio, lago, árvores e relevo nas bordas.
-- Câmera orbital suave, deslocamento relativo à direção da câmera, limites de zoom e inclinação.
-- Ruas de duas faixas e avenidas de quatro faixas, prévia de custo, calçadas, faixas e cruzamentos. Cada célula integra um grafo real, com algoritmo A* testado. Veículos não são renderizados nesta fase.
-- Pincéis 1×1, 3×3 e 5×5 para três tipos de zoneamento e demolição.
-- Casas e sobrados, lojas e galpões com fachadas, portas, janelas e telhados próprios. Instâncias compartilhadas para partes arquitetônicas, árvores, vias e lotes.
-- Crescimento por demanda, capacidade por edifício, população, famílias estimadas, empregos, desemprego e satisfação agregada.
-- Impostos simulados, transferências de desenvolvimento, manutenção, administração e serviços básicos agregados. O orçamento identifica a natureza simplificada dessas receitas.
-- Objetivos iniciais, inspeção de lotes, estatísticas com histórico mensal real, orçamento e configurações gráficas.
-- IndexedDB com três espaços manuais, autosave, nova cidade, retomada, importação e exportação JSON. Saves versão 1 têm validação de limites, tipos, ocupação, geometria, sobreposição e histórico.
-- Arquitetura de simulação independente do render, passo fixo e resultados determinísticos para a mesma cidade e sequência de ações.
+### Economia e população
 
-## Salvamentos
+A população é agregada por edifício. Capacidade, moradores, famílias estimadas, empregos, desemprego, satisfação e migração vêm do estado da cidade. Empregos de uma rede viária desconectada não atendem os moradores de outra. Sem água, energia ou acesso viário, edifícios perdem moradores e empregos deixam de operar.
 
-Dados ficam no banco IndexedDB `urbania`, store `cities`, na origem do navegador. Trocar domínio ou porta, usar modo privado ou limpar dados do site pode tornar os saves indisponíveis. Exporte JSON para fazer backup. Importar ou carregar substitui a cidade em memória e deixa o relógio pausado; use um espaço manual para guardar uma cidade importada. O autosave é global, não um backup permanente de todas as cidades. Configurações gráficas são locais à sessão e não fazem parte do save da cidade.
+O orçamento contém IPTU, atividades comercial e industrial **simuladas**, transferências de desenvolvimento, manutenção de ruas, contratos básicos, instalações, políticas e ônibus. Não é uma representação legal dos tributos municipais brasileiros. O saldo mensal é creditado a cada 30 dias; obras e decisões extraordinárias movimentam o caixa imediatamente. Impostos altos reduzem atratividade. Saúde, educação e bombeiros influenciam produtividade; trânsito saturado a reduz. A prefeitura melhora satisfação e eficiência administrativa.
 
-O atalho Ctrl+S / Cmd+S é um salvamento rápido e substitui o espaço 1. Na janela de salvamentos, substituir ou excluir um espaço exige confirmação na própria interface. Se o navegador impedir o uso de IndexedDB, o jogo avisa e a exportação JSON permanece disponível.
+### Infraestrutura e serviços
+
+- **Subestação:** capacidade elétrica; **tratamento de água:** água e esgoto; **central de coleta:** lixo.
+- **Escola, hospital, delegacia, bombeiros, prefeitura e parque:** coberturas e efeitos distintos sobre a cidade.
+- **Financiamento de 0 a 150%:** altera capacidade, alcance e manutenção. Em 0%, a instalação deixa de atender e não despacha veículos. O financiamento das redes também afeta os contratos regionais iniciais.
+- Atendimento considera acesso, componente da rede, distância, demanda e capacidade. A produção total exibida pode estar em redes diferentes; o percentual de atendimento mostra o que efetivamente chega aos lotes.
+- A indústria aumenta poluição nas proximidades. Coleta insuficiente também aumenta poluição. Parques e serviços elevam o valor dos terrenos.
+- Edifícios evoluem por até **três níveis**, com capacidade e arquitetura diferentes. Idade, energia, água, educação, saúde, segurança, valorização, satisfação e marcos precisam ser suficientes.
+
+As unidades de consumo e capacidade são abstratas para balanceamento do jogo; não são kWh, litros ou toneladas medidos de uma cidade real.
+
+### Trânsito e ônibus
+
+Carros fazem trajetos entre moradias e empregos; caminhões ligam indústria e comércio; veículos municipais saem de instalações; ônibus ligam estações. As rotas usam **A*** nas vias reais, com cache por topologia. Demolir uma via invalida trajetos afetados. Agentes seguem faixas, fazem curvas visuais, param em semáforos alternados, mantêm distância e desaceleram sob carga. Ao terminar a viagem, o objeto volta ao pool.
+
+São **agentes representativos**, limitados a 128, não um veículo por cidadão. Uma amostra adicional de até 24 moradores caminha nas calçadas usando trajetos residenciais reais, sem criar um objeto de simulação por habitante. A carga de tráfego deriva das viagens e da população representada; a amostra é ponderada para cidades maiores. O indicador de trânsito compara carga com capacidade por trecho. Avenidas comportam mais demanda.
+
+Construa duas estações na mesma rede e use **Transporte** para criar uma linha. As linhas têm custo operacional e reduzem a demanda por carros nas áreas atendidas. Remover uma estação remove suas linhas. Linhas que perderem conexão deixam de transportar e de oferecer cobertura até a rede ser reparada.
+
+### Políticas, eventos e mapas
+
+Quatro políticas persistentes: coleta seletiva, indústria limpa, incentivo habitacional e tarifa zero. Cada uma explica seu efeito e custo na interface. Decisões de eventos alteram caixa, financiamento, políticas ou modificadores com prazo: investimento, enchente, habitação, energia e recessão. O histórico guarda as escolhas; uma decisão pendente não é sobrescrita por outro evento.
+
+Camadas: densidade, valor do terreno, trânsito, poluição, risco de criminalidade, educação, saúde, energia e água. Cores usam dados atuais dos lotes e rotas. O risco de criminalidade é um indicador agregado de cobertura policial, não uma simulação individual de crimes.
+
+### Progressão
+
+Os marcos usam o recorde populacional; perder habitantes não apaga o recorde. A escala padrão de **10%** adapta os objetivos ao mapa compacto. Pode ser alterada em **Marcos**, inclusive para os valores metropolitanos originais:
+
+| Recurso | Mapa compacto | Escala original |
+| --- | ---: | ---: |
+| Delegacia, bombeiros e prefeitura | 10 | 100 |
+| Escola | 50 | 500 |
+| Indústria nível 2 | 100 | 1.000 |
+| Hospital | 250 | 2.500 |
+| Estações de ônibus | 500 | 5.000 |
+| Edifícios nível 3 | 1.000 | 10.000 |
+| Capacidade metropolitana de redes (+50%) | 2.500 | 25.000 |
+
+Comércio inicial continua disponível desde o começo para preservar o fluxo da versão anterior. Prédios residenciais e comerciais de nível 2 exigem o marco de escola, além da cobertura adequada.
+
+## Salvamentos e compatibilidade
+
+Banco IndexedDB `urbania`, store `cities`. Três espaços manuais e um autosave global atualizado a cada minuto. Trocar domínio ou porta, limpar dados ou usar navegação privada pode tornar os saves indisponíveis. Exporte JSON para ter um backup portátil.
+
+**Saves versão 1 são lidos e migrados automaticamente para a versão 2**, preservando nome, ruas, lotes, edifícios, dinheiro, data e histórico. Os sistemas novos recebem valores iniciais; nenhuma instalação é construída ou debitada na migração. Novas cidades e novos salvamentos usam a versão 2. Financiamento, políticas, instalações, linhas, níveis e eventos ficam no save. Agentes visuais de trânsito são reconstruídos ao continuar a cidade; não são cidadãos individuais persistentes.
+
+Importar ou carregar substitui a cidade em memória e deixa o relógio pausado. Salve uma cidade importada em um espaço para mantê-la. Ctrl+S substitui o espaço 1 diretamente; substituição e exclusão pela janela pedem confirmação. O autosave não é um arquivo permanente de todas as cidades. Se IndexedDB não funcionar, o jogo avisa e permite exportar JSON. Configurações gráficas e áudio pertencem à sessão, não ao save.
+
+## Desempenho e apresentação
+
+- InstancedMesh para arquitetura, vegetação, vias, instalações, veículos e sobreposições.
+- Buffers de instâncias crescem em potências de dois, evitando reconstruções a cada novo objeto. Recursos de instância são liberados no descarte; geometria é compartilhada.
+- Culling por lote de instâncias e LOD para detalhes de janelas na visão distante.
+- Geometria arquitetônica memorizada por footprint, variante e nível; ocupação não reconstrói fachadas.
+- Simulação econômica em passo fixo diário e trânsito em passos de 100 ms simulados, independentes do render.
+- Cache de componentes e até 512 trajetos por topologia; sem A* por frame. Pool fixo de 128 veículos e amostra ponderada de viagens.
+- Render sob demanda durante pausa, menus e tela inicial. Câmera invalida frames enquanto se move.
+- **Modo de desempenho:** menos árvores decorativas, menor resolução e sombras menores.
+- **Monitor opcional:** FPS, chamadas, triângulos e agentes medidos pelo renderizador. O ciclo solar dura 120 dias, com sombras e janelas emissivas. Sons opcionais de construção/eventos são sintetizados localmente.
+
+Nesta escala não há necessidade de um Web Worker. Benchmarks de CPU não equivalem a FPS em GPU; testes de navegador usam renderização por software para CI.
 
 ## Validar
 
 ```bash
 npm test
 npm run build
-# Instale Chromium uma vez, caso o sistema ainda não o tenha:
-npx playwright install chromium
+npx playwright install chromium # uma vez, se necessário
 npm run test:e2e
+npm run bench
 ```
 
-Os testes de navegador usam `/usr/bin/chromium` quando disponível. É possível indicar outro executável com `URBANIA_CHROMIUM_PATH`. Em outros sistemas, o Playwright usa seu próprio Chromium. O runner serve `dist` na porta 4173; gere o build antes. Os testes usam renderização por software para funcionar em CI sem GPU; isso não equivale a um benchmark do desempenho em uma GPU real.
+Playwright usa `/usr/bin/chromium` local quando disponível. É possível definir `URBANIA_CHROMIUM_PATH`. No CI, usa o Chromium instalado pelo Playwright. Gere `dist` antes. A suíte inclui dois intervalos reais de autosave e leva alguns minutos. Falhas geram imagens e traces em `test-results/`.
 
-- Testes de regras: cobrança atômica, terreno válido, limites, sobreposição, upgrade de vias, conexão de cruzamentos, A*, desconexão por demolição, demanda, migração, imposto e fechamento mensal.
-- Simulação prolongada: 900 dias ativos, equivalentes a 15 minutos em 1× no modelo, reconciliando caixa e validando o estado final. É um teste acelerado da lógica, não uma sessão manual de 15 minutos.
-- Persistência: round-trip, independência dos espaços, substituição, exclusão e rejeição de saves inválidos.
-- Testes de navegador: construção real pelo canvas, zoneamento, crescimento, pausa, demolição, alíquota, salvamento, recuperação após reload e importação/exportação. O autosave é verificado com dois intervalos reais de um minuto, incluindo a desativação; a suíte leva alguns minutos. Capturas e traces de falhas ficam em `test-results/`.
-
-## Organização
-
-```text
-src/core/       regras puras de construção, mundo, economia e simulação; IndexedDB
-src/state/      store Zustand e comandos da sessão
-src/render/     cena R3F, câmera, terreno e modelos instanciados
-src/ui/         HUD, janelas, formulários e formatação
-src/App.tsx     relógio fixo, autosave, atalhos e composição
-tests/          fluxos Playwright no navegador
-```
-
-O render lê o estado, mas não executa regras econômicas. Edifícios e cidadãos são simulados de forma agregada. Não há um objeto por morador. A geometria arquitetônica é memorizada por footprint e variante; mudanças de ocupação não exigem recriar fachadas. O A* calcula sob demanda e não roda a cada frame. Nesta escala, não há carga que justifique um Web Worker. O território ainda não é expansível.
-
-## Próximas fases
-
-**Fase 2:** agentes de tráfego e pooling, rotas em cache, sentidos de trânsito, congestionamento, energia, água, saneamento, serviços públicos individuais e evolução dos edifícios.
-
-**Fase 3:** eventos com decisões, políticas, camadas temáticas, transporte público, ciclo dia/noite, progressão e desbloqueios.
-
-**Fase 4:** LOD por distância, mais otimizações de escala, áudio, acessibilidade e controles adicionais, balanceamento de longo prazo e benchmarks em diferentes GPUs.
-
-Também ficam para depois: zona mista, rodovias, ruas de mão única, avenidas de seis faixas, curvas, pontes e expansão por setores. A iluminação desta versão é solar e estática, com sombras configuráveis. As ruas são conexões funcionais da simulação e não apenas decoração, mas a visualização de tráfego pertence à Fase 2.
+Os testes cobrem construção, economia, 900 dias de simulação, persistência, migração, infraestrutura, conexões, capacidade, financiamento, evolução, emprego por rede, ônibus, tráfego, políticas e todas as escolhas dos eventos. No navegador são exercitados canvas, salvamento, importação/exportação, serviços, linhas, camadas, eventos e controles de câmera durante a pausa. O benchmark usa uma cidade com centenas de edifícios e vias para medir passos completos da lógica, não apenas leituras de cache.
 
 ## GitHub Pages
 
-O workflow [`.github/workflows/pages.yml`](.github/workflows/pages.yml) publica o jogo a cada push na branch `main` e também permite execução manual. Em **Settings → Pages**, a origem deve ser **GitHub Actions**. O workflow instala as dependências pelo lockfile, executa os testes de regras, gera o build e executa os quatro testes no navegador antes de publicar `dist`.
-
-O caminho de produção é `/Urbania/`, configurado por `VITE_BASE_PATH`. Assets, ícone e testes respeitam esse caminho; o desenvolvimento local continua usando `/`. Para testar exatamente esse build localmente:
+O [workflow de publicação](.github/workflows/pages.yml) roda a cada push em `main`, instala pelo lockfile, testa, gera o build, executa os fluxos no navegador e publica `dist`. Em **Settings → Pages**, a origem deve ser **GitHub Actions**. O caminho de produção é `/Urbania/`; localmente, `/` continua sendo o padrão.
 
 ```bash
 VITE_BASE_PATH=/Urbania/ npm run build
@@ -125,10 +150,24 @@ VITE_BASE_PATH=/Urbania/ npm run test:e2e
 VITE_BASE_PATH=/Urbania/ npm run preview
 ```
 
-Após um deploy bem-sucedido, o endereço padrão é `https://renantm1.github.io/Urbania/`. O status do job de deploy é a confirmação de publicação; apenas enviar um commit não garante que o site já está no ar. Não são necessários segredos adicionais para o workflow: ele usa o token temporário do GitHub Actions, com permissões de Pages e OpenID Connect limitadas ao job de deploy.
+Endereço padrão após deploy bem-sucedido: `https://renantm1.github.io/Urbania/`. Apenas enviar um commit não comprova publicação: confira o job de deploy. Nenhum segredo adicional é necessário; usa-se o token temporário do Actions e OIDC com permissões limitadas. Para levar um save de outro endereço ao site, exporte o JSON e importe no destino.
 
-Os saves pertencem à origem do navegador. Para levar uma cidade de outro endereço para o site publicado, exporte o JSON no endereço antigo e importe no novo.
+## Arquitetura
+
+```text
+src/core/       construção, mundo, economia, serviços, tráfego, eventos e persistência
+src/state/      store Zustand e comandos da sessão
+src/render/     cena R3F, câmera, terreno e modelos instanciados
+src/ui/         HUD, gestão municipal, formulários, áudio e formatação
+tests/          fluxos Playwright no navegador
+```
+
+## Limites e expansões futuras
+
+O território ainda é fixo. Há duas categorias de via: rua e avenida, ambas com trânsito de mão dupla. Ainda não há zona mista, vias de mão única, seis faixas, rodovias, curvas construídas pelo jogador, pontes ou compra de setores. A* usa uma grade; as curvas dos veículos são suavização visual dentro dos cruzamentos. Semáforos são simplificados e determinísticos, sem fases adaptativas ou regras completas de prioridade.
+
+Serviços e população são agregados; não há simulação individual persistente de pedestres, transporte com passageiros individualizados, desastres físicos com fluidos ou rede elétrica/hidráulica separada das ruas. O ciclo solar é visual e não altera a demanda energética. Sons são sinais de interface, não trilha sonora. Estas limitações não são apresentadas como recursos já concluídos. Expansão de escala, novos tipos de via, simulações mais detalhadas e benchmarks em diferentes GPUs continuam como melhorias futuras.
 
 ## Ambiente na nuvem
 
-O checkout padrão é `/workspace/Urbania`. Use o checkout existente; tarefas na nuvem já são isoladas e não precisam de um Git worktree adicional. Instalação reproduzível: `npm ci`, `npm test`, `npm run build`. Inicie o servidor com `npm run dev -- --port 5173 --strictPort`. Processos não fazem parte de snapshots; reinicie o Vite em novas tarefas quando necessário. Todos os assets são procedurais ou locais; apenas o registro npm é necessário para reinstalar dependências.
+Use `/workspace/Urbania`, o checkout já existente. Tarefas na nuvem são isoladas; não é preciso criar worktrees adicionais. Instalação reproduzível: `npm ci`, `npm test`, `npm run build`. Inicie com `npm run dev -- --port 5173 --strictPort`. Processos precisam reiniciar em novas tarefas; dependências e arquivos podem vir do snapshot. O registro npm é suficiente para reinstalar dependências; o jogo não exige credenciais.

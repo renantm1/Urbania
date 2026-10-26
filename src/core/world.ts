@@ -1,4 +1,5 @@
 import type { Cell, Road, RoadKind, City } from './types';
+import { defaultFunding, defaultPolicies } from './services';
 
 export const MAP_SIZE = 56;
 export const CELL_SIZE = 8;
@@ -43,8 +44,10 @@ export function brushCells(cell: Cell, size: number): Cell[] {
 
 export function createCity(name = 'Nova Aurora', seed = 42): City {
   return {
-    version: 1, id: crypto.randomUUID(), name: name.trim().slice(0, 40) || 'Nova Aurora', seed,
+    version: 2, id: crypto.randomUUID(), name: name.trim().slice(0, 40) || 'Nova Aurora', seed,
     roads: {}, lots: {}, treasury: STARTING_FUNDS, day: 0, taxRate: 9, history: [], totalConstruction: 0,
+    facilities: {}, funding: defaultFunding(), policies: defaultPolicies(), busLines: [], peakPopulation: 0, milestoneScale: .1,
+    event: null, eventHistory: [], modifiers: { investmentUntil: 0, recessionUntil: 0, floodUntil: 0 },
   };
 }
 

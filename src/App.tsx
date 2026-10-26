@@ -6,6 +6,8 @@ import { Dialogs, Welcome } from './ui/Dialogs';
 import { useGame } from './state/store';
 import { saveCity } from './core/persistence';
 import type { Tool } from './core/types';
+import { trafficEngine } from './core/traffic';
+import { AudioRuntime } from './ui/Audio';
 
 async function quickSave() {
   const state = useGame.getState();
@@ -16,11 +18,13 @@ async function quickSave() {
 
 function GameRuntime() {
   useEffect(() => {
-    let last = performance.now(), accumulator = 0;
+    let last = performance.now(), accumulator = 0, trafficAccumulator = 0;
     const timer = window.setInterval(() => {
       const now = performance.now(), state = useGame.getState();
       const delta = Math.min(500, now - last); last = now;
-      if (document.hidden || !state.started || state.modal || !state.speed) { accumulator = 0; return; }
+      if (document.hidden || !state.started || state.modal || !state.speed) { accumulator = 0; trafficAccumulator = 0; return; }
+      trafficAccumulator += delta * state.speed;
+      while (trafficAccumulator >= 100) { trafficEngine.step(useGame.getState().city, .1); trafficAccumulator -= 100; }
       accumulator += delta * state.speed;
       while (accumulator >= 1000) { state.tick(); accumulator -= 1000; }
     }, 100);
@@ -62,7 +66,7 @@ export default function App() {
     const timer = window.setTimeout(() => useGame.setState({ notice: null }), 5500);
     return () => clearTimeout(timer);
   }, [notice]);
-  return <div className="app-shell"><GameRuntime /><div className={`world ${started ? 'playing' : 'intro'}`}><Scene /></div>{started ? <Hud /> : <Welcome />}<Dialogs />
+  return <div className="app-shell"><GameRuntime /><AudioRuntime /><div className={`world ${started ? 'playing' : 'intro'}`}><Scene /></div>{started ? <Hud /> : <Welcome />}<Dialogs />
     {notice && <div role={notice.tone === 'error' ? 'alert' : 'status'} className={`toast ${notice.tone}`}>{notice.tone === 'error' ? <Info size={18} /> : <CheckCircle2 size={18} />}<span>{notice.text}</span><button aria-label="Fechar aviso" onClick={() => useGame.setState({ notice: null })}><X size={15} /></button></div>}
     {smallWarning && <div className="small-screen-notice"><Info size={17} /><span>Urbania foi criado para desktop. Use uma janela de pelo menos 1.024 px e um mouse para construir.</span><button aria-label="Fechar aviso de tela" onClick={() => setSmallWarning(false)}><X size={15} /></button></div>}
   </div>;

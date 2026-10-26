@@ -1,6 +1,6 @@
 {
   "name": "urbania",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,6 +9,7 @@
     "preview": "vite preview --host 0.0.0.0",
     "test": "vitest run",
     "test:watch": "vitest",
+    "bench": "vitest bench --run",
     "test:e2e": "playwright test"
   },
   "dependencies": {

@@ -10,12 +10,19 @@ import { CELL_SIZE, MAP_SIZE, ROAD_COST, ZONE_COST, brushCells, hash, inBounds, 
 import { Instances, coneGeometry, crownGeometry } from './Instances';
 import type { Part } from './Instances';
 import { Buildings } from './Buildings';
+import { Facilities } from './Facilities';
+import { Traffic, Signals } from './Traffic';
+import { CityLayers } from './CityLayers';
+import { FACILITIES, facilityAt, footprint } from '../core/services';
+import { trafficEngine } from '../core/traffic';
+import { Pedestrians } from './Pedestrians';
+import { SelectionTargets } from './SelectionTargets';
 
 export const ZONE_COLORS = { residential: '#75b88a', commercial: '#6da8cc', industrial: '#dab465' };
 
 function CameraRig() {
   const ref = useRef<OrbitControlsImpl>(null);
-  const { camera } = useThree();
+  const { camera, invalidate } = useThree();
   const keys = useRef(new Set<string>());
   const reset = useGame(s => s.cameraReset);
   const motion = useRef(new THREE.Vector3());
@@ -27,12 +34,12 @@ function CameraRig() {
     ref.current?.update();
   }, [camera, reset]);
   useEffect(() => {
-    const down = (e: KeyboardEvent) => { if (!(e.target instanceof HTMLElement) || (!e.target.closest('input, textarea, select, [contenteditable]') && !useGame.getState().modal)) keys.current.add(e.code); };
+    const down = (e: KeyboardEvent) => { if (!(e.target instanceof HTMLElement) || (!e.target.closest('input, textarea, select, [contenteditable]') && !useGame.getState().modal)) { keys.current.add(e.code); invalidate(); } };
     const up = (e: KeyboardEvent) => keys.current.delete(e.code);
     const clear = () => keys.current.clear();
     window.addEventListener('keydown', down); window.addEventListener('keyup', up); window.addEventListener('blur', clear);
     return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); window.removeEventListener('blur', clear); };
-  }, []);
+  }, [invalidate]);
   useFrame((_, dt) => {
     const controls = ref.current;
     if (!controls) return;
@@ -48,6 +55,7 @@ function CameraRig() {
     }
     desired.normalize().multiplyScalar(Math.max(35, camera.position.distanceTo(controls.target) * .42));
     motion.current.lerp(desired, 1 - Math.exp(-8 * dt));
+    if (motion.current.lengthSq() > .02) invalidate();
     const move = motion.current.clone().multiplyScalar(Math.min(dt, .05));
     controls.target.add(move); camera.position.add(move);
     const x = THREE.MathUtils.clamp(controls.target.x, -240, 240);
@@ -63,6 +71,7 @@ function CameraRig() {
 
 function Landscape() {
   const roads = useGame(s => s.city.roads), lots = useGame(s => s.city.lots);
+  const facilities = useGame(s => s.city.facilities), low = useGame(s => s.performanceMode);
   const occupiedFootprint = Object.keys(lots).join('|');
   const { terrain, water, bank } = useMemo(() => {
     const terrain = new THREE.PlaneGeometry(1100, 1100, 200, 200);
@@ -74,9 +83,9 @@ function Landscape() {
       const cx = x / CELL_SIZE + (MAP_SIZE - 1) / 2, cz = z / CELL_SIZE + (MAP_SIZE - 1) / 2;
       const distance = Math.abs(cx - riverCenter(cz)) - riverWidth(cz);
       let y = -.12 + Math.sin(x * .018) * Math.sin(z * .023) * .1;
-      if (distance < .9) y = THREE.MathUtils.lerp(-2.6, y, THREE.MathUtils.smoothstep(distance, -.5, .9));
       const edge = Math.max(0, Math.max(Math.abs(x), Math.abs(z)) - 225);
       y += Math.min(60, edge * .15) * (.4 + .6 * Math.sin(x * .008 + 1) ** 2);
+      if (distance < .9) y = THREE.MathUtils.lerp(-2.6, y, THREE.MathUtils.smoothstep(distance, -.5, .9));
       pos.setY(i, y);
       const c = new THREE.Color(distance < 1 ? '#a8ad7d' : '#819765');
       c.multiplyScalar(.94 + hash(Math.floor(x / 12), Math.floor(z / 12), 3) * .12);
@@ -99,10 +108,12 @@ function Landscape() {
   }, []);
   const treeParts = useMemo(() => {
     const trunks: Part[] = [], crowns: Part[] = [], pines: Part[] = [], rocks: Part[] = [];
+    const occupied = new Set(Object.values(facilities).flatMap(f => footprint(f).map(keyOf)));
     for (let i = 0; i < 900; i++) {
+      if (low && i % 2) continue;
       const x = hash(i, 19, 88) * 72 - 8, z = hash(i, 40, 14) * 72 - 8;
       const cell = { x: Math.round(x), z: Math.round(z) };
-      if (isWater({ x, z }) || Math.abs(x - riverCenter(z)) < riverWidth(z) + 1 || roads[keyOf(cell)] || lots[keyOf(cell)]) continue;
+      if (isWater({ x, z }) || Math.abs(x - riverCenter(z)) < riverWidth(z) + 1 || roads[keyOf(cell)] || lots[keyOf(cell)] || occupied.has(keyOf(cell))) continue;
       if (x > 12 && x < 38 && z > 10 && z < 44 && hash(i, 5) > .12) continue;
       const wx = toWorld(x), wz = toWorld(z), size = 2 + hash(i, 61) * 2.5;
       const edge = Math.max(0, Math.max(Math.abs(wx), Math.abs(wz)) - 225);
@@ -114,7 +125,7 @@ function Landscape() {
       if (i % 13 === 0) rocks.push({ position: [wx + 4, y + .55, wz + 2], scale: [1.4, .8, 1.1], color: '#a0a18d', rotation: i });
     }
     return { trunks, crowns, pines, rocks };
-  }, [roads, occupiedFootprint]);
+  }, [roads, occupiedFootprint, facilities, low]);
   return <>
     <mesh geometry={terrain} receiveShadow raycast={() => {}}><meshStandardMaterial vertexColors roughness={1} /></mesh>
     <mesh geometry={bank} raycast={() => {}}><meshStandardMaterial color="#b6b38c" roughness={1} side={THREE.DoubleSide} /></mesh>
@@ -146,6 +157,8 @@ function Roads() {
           else add(x, .29, z + offset, 2.6, .02, .08, '#bfc7c5');
         }
       } else {
+        add(x + 3.2, 1.6, z + 3.2, .18, 3.2, .18, '#667f76');
+        add(x - 3.2, 1.6, z + 3.2, .18, 3.2, .18, '#667f76');
         for (const d of [-1.4, -.7, 0, .7, 1.4]) {
           add(x + d, .29, z + 3.1, .35, .02, .8, '#d8d9cc');
           add(x + 3.1, .29, z + d, .8, .02, .35, '#d8d9cc');
@@ -173,6 +186,7 @@ function Lots() {
 function BuildSurface() {
   const tool = useGame(s => s.tool), anchor = useGame(s => s.anchor), hover = useGame(s => s.hover), brush = useGame(s => s.brush), selected = useGame(s => s.selected);
   const city = useGame(s => s.city), roadKind = useGame(s => s.roadKind), started = useGame(s => s.started), modal = useGame(s => s.modal);
+  const facilityKind = useGame(s => s.facilityKind);
   const painting = useRef(false);
   const lastPaint = useRef('');
   useEffect(() => {
@@ -191,12 +205,12 @@ function BuildSurface() {
   };
   const preview = useMemo(() => {
     if (!hover || !started || modal || tool === 'select') return { parts: [], valid: true };
-    const cells = tool === 'road' ? (anchor ? roadLine(anchor, hover) : [hover]) : brushCells(hover, brush);
-    const cost = tool === 'road' ? cells.filter(cell => city.roads[keyOf(cell)]?.kind !== roadKind).length * ROAD_COST[roadKind] : cells.length * ZONE_COST;
-    const valid = tool === 'bulldoze' || (cost <= city.treasury && cells.every(cell => isBuildable(cell) && (tool === 'road' ? !city.lots[keyOf(cell)]?.building : !city.roads[keyOf(cell)] && !city.lots[keyOf(cell)]?.building)));
-    const color = !valid || tool === 'bulldoze' ? '#e9957d' : tool === 'road' ? '#cee8d1' : ZONE_COLORS[tool];
+    const cells = tool === 'road' ? (anchor ? roadLine(anchor, hover) : [hover]) : tool === 'facility' ? footprint(hover) : brushCells(hover, brush);
+    const cost = tool === 'road' ? cells.reduce((sum, cell) => sum + (city.roads[keyOf(cell)]?.kind === roadKind ? 0 : city.roads[keyOf(cell)] ? Math.abs(ROAD_COST[roadKind] - ROAD_COST[city.roads[keyOf(cell)].kind]) : ROAD_COST[roadKind]), 0) : tool === 'facility' ? FACILITIES[facilityKind].cost : cells.length * ZONE_COST;
+    const valid = tool === 'bulldoze' || (cost <= city.treasury && cells.every(cell => isBuildable(cell) && !facilityAt(city, cell) && (tool === 'road' ? !city.lots[keyOf(cell)]?.building : !city.roads[keyOf(cell)] && !city.lots[keyOf(cell)]?.building)));
+    const color = !valid || tool === 'bulldoze' ? '#e9957d' : tool === 'road' ? '#cee8d1' : tool === 'facility' ? FACILITIES[facilityKind].color : ZONE_COLORS[tool];
     return { parts: cells.filter(inBounds).map(cell => ({ position: [toWorld(cell.x), .5, toWorld(cell.z)] as [number, number, number], scale: [7.7, .15, 7.7] as [number, number, number], color })), valid };
-  }, [hover, started, modal, tool, brush, anchor, city, roadKind]);
+  }, [hover, started, modal, tool, brush, anchor, city, roadKind, facilityKind]);
   return <>
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, .35, 0]}
       onPointerMove={onMove} onPointerLeave={() => useGame.getState().setHover(null)}
@@ -215,18 +229,38 @@ function BuildSurface() {
   </>;
 }
 
+function Atmosphere({ shadows, low }: { shadows: boolean; low: boolean }) {
+  const sun = useRef<THREE.DirectionalLight>(null), ambient = useRef<THREE.AmbientLight>(null), sky = useRef<THREE.HemisphereLight>(null);
+  const { scene, gl } = useThree();
+  const dayColor = useMemo(() => new THREE.Color('#b7c8c8'), []), nightColor = useMemo(() => new THREE.Color('#25364a'), []);
+  const meter = useRef({ elapsed: 0, frames: 0 });
+  useFrame((_, dt) => {
+    const state = useGame.getState();
+    const phase = (state.city.day % 120 + trafficEngine.clock % 1) / 120;
+    const light = state.dayNight && state.started ? Math.pow((Math.cos(phase * Math.PI * 2) + 1) / 2, .6) : 1;
+    if (sun.current) { sun.current.intensity = .1 + light * 2.3; sun.current.position.set(-180 + Math.sin(phase * Math.PI * 2) * 80, 220 + light * 60, 100); }
+    if (ambient.current) ambient.current.intensity = .2 + light * .95;
+    if (sky.current) sky.current.intensity = .2 + light;
+    if (scene.background instanceof THREE.Color) scene.background.copy(nightColor).lerp(dayColor, light);
+    if (scene.fog instanceof THREE.Fog) scene.fog.color.copy(nightColor).lerp(dayColor, light);
+    if (state.showPerformance) {
+      meter.current.elapsed += Math.min(dt, .5); meter.current.frames++;
+      if (meter.current.elapsed >= 1) { useGame.setState({ frameStats: { fps: Math.round(meter.current.frames / meter.current.elapsed), calls: gl.info.render.calls, triangles: gl.info.render.triangles, vehicles: trafficEngine.activeCount } }); meter.current = { elapsed: 0, frames: 0 }; }
+    }
+  });
+  return <><ambientLight ref={ambient} intensity={1.15} color="#e0ebee" /><hemisphereLight ref={sky} args={['#d9ecf6', '#898561', 1.2]} /><directionalLight ref={sun} position={[-180, 280, 100]} intensity={2.5} color="#fff1d3" castShadow={shadows}
+    shadow-mapSize={low ? [1024, 1024] : [2048, 2048]} shadow-camera-left={-280} shadow-camera-right={280} shadow-camera-top={280} shadow-camera-bottom={-280} shadow-camera-far={800} shadow-bias={-.0004} shadow-normalBias={.06} /></>;
+}
+
 function World() {
-  const showGrid = useGame(s => s.showGrid), tool = useGame(s => s.tool), shadows = useGame(s => s.shadows);
+  const showGrid = useGame(s => s.showGrid), tool = useGame(s => s.tool), shadows = useGame(s => s.shadows), low = useGame(s => s.performanceMode);
   return <>
     <color attach="background" args={['#b7c8c8']} /><fog attach="fog" args={['#b7c8c8', 550, 1300]} />
-    <ambientLight intensity={1.15} color="#e0ebee" />
-    <hemisphereLight args={['#d9ecf6', '#898561', 1.2]} />
-    <directionalLight position={[-180, 280, 100]} intensity={2.5} color="#fff1d3" castShadow={shadows}
-      shadow-mapSize={[2048, 2048]} shadow-camera-left={-280} shadow-camera-right={280} shadow-camera-top={280} shadow-camera-bottom={-280} shadow-camera-far={800} shadow-bias={-.0004} shadow-normalBias={.06} />
-    <Landscape /><Roads /><Lots /><Buildings />
+    <Atmosphere shadows={shadows} low={low} />
+    <Landscape /><Roads /><Lots /><Buildings /><Facilities /><Traffic /><Pedestrians /><Signals /><CityLayers />
     {showGrid && tool !== 'select' && <Grid position={[0, .23, 0]} args={[448, 448]} cellSize={8} sectionSize={40} cellThickness={.45} sectionThickness={.65} cellColor="#496b55" sectionColor="#597762" fadeDistance={650} fadeStrength={1.5} raycast={() => {}} />}
     <Line points={[[-224, .2, -224], [224, .2, -224], [224, .2, 224], [-224, .2, 224], [-224, .2, -224]]} color="#d3dbba" transparent opacity={.4} dashed dashSize={4} gapSize={4} lineWidth={1} raycast={() => {}} />
-    <BuildSurface /><CameraRig />
+    <BuildSurface /><SelectionTargets /><CameraRig />
   </>;
 }
 
@@ -241,11 +275,11 @@ class SceneBoundary extends Component<{ children: ReactNode }, { failed: boolean
 }
 
 export function Scene() {
-  const shadows = useGame(s => s.shadows);
+  const shadows = useGame(s => s.shadows), low = useGame(s => s.performanceMode), running = useGame(s => s.started && !!s.speed && !s.modal);
   const [ready, setReady] = useState(false);
   return <SceneBoundary>
     {!ready && <div className="world-loading">Preparando seu território<span /></div>}
-    <Canvas shadows={shadows ? 'soft' : false} dpr={[1, 1.7]} gl={{ antialias: true, powerPreference: 'high-performance' }}
+    <Canvas frameloop={running ? 'always' : 'demand'} shadows={shadows ? 'soft' : false} dpr={low ? 1 : [1, 1.7]} gl={{ antialias: true, powerPreference: 'high-performance' }}
       camera={{ position: [190, 240, 285], fov: 42, near: 1, far: 1600 }} onCreated={() => setReady(true)}
       fallback={<div className="webgl-error">Seu navegador precisa oferecer WebGL 2 para jogar Urbania.</div>}
       onContextMenu={e => e.preventDefault()}>

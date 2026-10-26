@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { useFrame } from '@react-three/fiber';
 
 export interface Part {
   position: [number, number, number];
@@ -22,8 +23,13 @@ roofGeometry.setAttribute('position', new THREE.Float32BufferAttribute(roofVerti
 roofGeometry.setIndex([0,2,1, 0,3,2, 3,5,2, 3,4,5, 0,4,3, 1,2,5, 0,1,5, 0,5,4]);
 roofGeometry.computeVertexNormals();
 
-export function Instances({ parts, geometry = boxGeometry, opacity = 1, shadow = true }: { parts: Part[]; geometry?: THREE.BufferGeometry; opacity?: number; shadow?: boolean }) {
+export function Instances({ parts, geometry = boxGeometry, opacity = 1, shadow = true, glow = false, lodDistance }: { parts: Part[]; geometry?: THREE.BufferGeometry; opacity?: number; shadow?: boolean; glow?: boolean; lodDistance?: number }) {
   const ref = useRef<THREE.InstancedMesh>(null);
+  const capacity = 2 ** Math.ceil(Math.log2(Math.max(1, parts.length)));
+  useFrame(({ camera }) => {
+    const mesh = ref.current;
+    if (mesh) mesh.visible = !lodDistance || !mesh.boundingSphere || camera.position.distanceTo(mesh.boundingSphere.center) - mesh.boundingSphere.radius < lodDistance;
+  });
   useLayoutEffect(() => {
     const mesh = ref.current;
     if (!mesh) return;
@@ -39,9 +45,9 @@ export function Instances({ parts, geometry = boxGeometry, opacity = 1, shadow =
     mesh.instanceMatrix.needsUpdate = true;
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     mesh.computeBoundingSphere();
-  }, [parts]);
+  }, [parts, capacity]);
   if (!parts.length) return null;
-  return <instancedMesh ref={ref} args={[geometry, undefined, parts.length]} castShadow={shadow} receiveShadow raycast={() => {}}>
-    <meshStandardMaterial roughness={.86} transparent={opacity < 1} opacity={opacity} depthWrite={opacity === 1} />
+  return <instancedMesh ref={ref} args={[geometry, undefined, capacity]} castShadow={shadow} receiveShadow raycast={() => {}}>
+    <meshStandardMaterial roughness={.86} transparent={opacity < 1} opacity={opacity} depthWrite={opacity === 1} emissive={glow ? '#d9b15e' : '#000000'} emissiveIntensity={glow ? .45 : 0} />
   </instancedMesh>;
 }
