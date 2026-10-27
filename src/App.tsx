@@ -47,9 +47,12 @@ function GameRuntime() {
       }
       if (e.code === 'Escape') { state.cancel(); return; }
       if ((e.target instanceof HTMLElement && e.target.closest('input, textarea, select, [contenteditable]')) || state.modal || !state.started || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
-      if (e.code === 'Space') { e.preventDefault(); state.togglePause(); }
+      if (e.code === 'Space') {
+        if (e.target instanceof HTMLElement && e.target.closest('button, a[href]')) return;
+        e.preventDefault(); state.togglePause();
+      }
       if (e.code === 'KeyF') state.resetCamera();
-      const bindings: Record<string, Tool> = { Digit1: 'road', Digit2: 'residential', Digit3: 'commercial', Digit4: 'industrial', Digit5: 'bulldoze', KeyV: 'select' };
+      const bindings: Record<string, Tool> = { Digit1: 'road', Digit2: 'residential', Digit3: 'commercial', Digit4: 'industrial', Digit5: 'bulldoze', Digit6: 'mixed', KeyV: 'select' };
       if (bindings[e.code]) state.setTool(bindings[e.code]);
     };
     window.addEventListener('keydown', keyboard);

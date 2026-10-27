@@ -5,6 +5,9 @@ import { addBusLine, buildFacility, buildRoad, demolishCells, zoneCells } from '
 import { simulateDay } from '../core/simulation';
 import { resolveEvent } from '../core/events';
 import { trafficEngine } from '../core/traffic';
+import { readPreferences, writePreferences } from './preferences';
+import type { Preferences } from './preferences';
+import { MILESTONES, unlocked } from '../core/services';
 
 export type Modal = 'budget' | 'statistics' | 'saves' | 'settings' | 'help' | 'new' | 'management' | null;
 export type ManagementTab = 'services' | 'infrastructure' | 'transport' | 'policies' | 'layers' | 'progression' | 'events';
@@ -33,6 +36,7 @@ interface GameState {
   audio: boolean;
   performanceMode: boolean;
   showPerformance: boolean;
+  showGuide: boolean;
   frameStats: { fps: number; calls: number; triangles: number; vehicles: number };
   setTool: (tool: Tool) => void;
   setRoadKind: (roadKind: RoadKind) => void;
@@ -48,7 +52,7 @@ interface GameState {
   setModal: (modal: Modal) => void;
   notify: (text: string, tone?: 'info' | 'error') => void;
   setTax: (tax: number) => void;
-  setSetting: (key: 'shadows' | 'showGrid' | 'autosave' | 'dayNight' | 'audio' | 'performanceMode' | 'showPerformance', value: boolean) => void;
+  setSetting: (key: keyof Preferences, value: boolean) => void;
   saved: () => void;
   resetCamera: () => void;
   openManagement: (tab: ManagementTab) => void;
@@ -65,8 +69,8 @@ interface GameState {
 export const useGame = create<GameState>((set, get) => ({
   city: createCity(), started: false, tool: 'select', roadKind: 'street', brush: 1,
   speed: 1, lastSpeed: 1, anchor: null, hover: null, selected: null, modal: null,
-  notice: null, shadows: true, showGrid: true, autosave: true, lastSaved: null, cameraReset: 0,
-  facilityKind: 'power', layer: 'none', managementTab: 'services', dayNight: true, audio: false, performanceMode: false, showPerformance: false, frameStats: { fps: 0, calls: 0, triangles: 0, vehicles: 0 },
+  notice: null, ...readPreferences(), lastSaved: null, cameraReset: 0,
+  facilityKind: 'power', layer: 'none', managementTab: 'services', frameStats: { fps: 0, calls: 0, triangles: 0, vehicles: 0 },
   setTool: tool => set({ tool, anchor: null, selected: null }),
   setRoadKind: roadKind => set({ roadKind, anchor: null }),
   setBrush: brush => set({ brush }),
@@ -91,13 +95,18 @@ export const useGame = create<GameState>((set, get) => ({
     if (!get().started || !get().speed || get().modal) return;
     const previous = get().city, city = simulateDay(previous);
     set({ city, ...(!previous.event && city.event ? { modal: 'management' as const, managementTab: 'events' as const } : {}) });
+    const milestone = MILESTONES.filter(m => !unlocked(previous, m.population) && unlocked(city, m.population)).at(-1);
+    if (milestone) get().notify(`Marco alcançado: ${milestone.name}. ${milestone.reward}.`);
   },
   newCity: name => { const city = createCity(name, Math.floor(Math.random() * 1e6)); trafficEngine.reset(city); set({ city, started: true, tool: 'road', anchor: null, selected: null, hover: null, modal: null, speed: 1, lastSaved: null, layer: 'none', cameraReset: get().cameraReset + 1 }); },
   restoreCity: city => { trafficEngine.reset(city); set({ city, started: true, tool: 'select', anchor: null, selected: null, hover: null, modal: null, speed: 0, lastSaved: null, layer: 'none', cameraReset: get().cameraReset + 1 }); },
   setModal: modal => set({ modal }),
   notify: (text, tone = 'info') => set({ notice: { text, tone, id: Date.now() } }),
   setTax: tax => set({ city: { ...get().city, taxRate: Math.round(Math.max(1, Math.min(20, tax))) } }),
-  setSetting: (key, value) => set({ [key]: value }),
+  setSetting: (key, value) => {
+    set({ [key]: value });
+    if (!writePreferences(get())) get().notify('Preferência aplicada nesta sessão. O navegador não permitiu guardá-la para a próxima visita.', 'error');
+  },
   saved: () => set({ lastSaved: new Date().toISOString() }),
   resetCamera: () => set({ cameraReset: get().cameraReset + 1 }),
   openManagement: managementTab => set({ modal: 'management', managementTab }),

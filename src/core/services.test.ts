@@ -85,4 +85,16 @@ describe('serviços, infraestrutura e evolução', () => {
     expect(removed.cost).toBe(180); expect(removed.city.busLines).toHaveLength(0);
     expect(facilityAt(removed.city, { x: 29, z: 21 })).toBeUndefined();
   });
+  it('o alcance ampliado pelo financiamento também compartilha a capacidade com os novos consumidores', () => {
+    let city = buildRoad({ ...createCity(), peakPopulation: 500 }, { x: 10, z: 20 }, { x: 30, z: 20 }, 'street').city;
+    city = buildFacility(city, { x: 10, z: 21 }, 'school').city;
+    const lots: typeof city.lots = {};
+    for (let x = 11; x <= 23; x++) lots[`${x},19`] = { x, z: 19, kind: 'industrial', building: { variant: 0, age: 10, occupants: 0, level: 3 } };
+    city = { ...city, lots, funding: { ...city.funding, school: 150 } };
+    const base = assessServices(city).lots.get('11,19')!.education;
+    const extended = { ...city, lots: { ...city.lots, '27,19': { ...lots['11,19'], x: 27 } } };
+    const report = assessServices(extended);
+    expect(report.lots.get('27,19')!.education).toBeGreaterThan(.2);
+    expect(report.lots.get('11,19')!.education).toBeLessThan(base);
+  });
 });

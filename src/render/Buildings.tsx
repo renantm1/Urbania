@@ -25,6 +25,29 @@ export function Buildings() {
       });
       add(0, .04, 0, 7.8, .12, 7.8, lot.kind === 'industrial' ? '#b2b0a0' : '#79935b');
       add(0, .1, 3.5, 2, .12, 1, '#cfcdc0');
+      if (lot.kind === 'mixed') {
+        const floors = [2, 4, 8][level - 1], height = 3.2 + floors * 2.8;
+        add(0, height / 2, -.2, 6.4, height, 6, ['#ded4c5', '#c9d4d0', '#d9c9bb'][variant % 3]);
+        add(0, height + .2, -.2, 6.7, .4, 6.3, '#e5e0d2');
+        add(.8, height + .65, -.8, 1.5, .6, 1.5, '#839293');
+        // Glazed ground-floor shops with their own entrance and awning.
+        add(-.6, 1.5, 2.86, 4.7, 2.5, .1, '#446c79');
+        for (const dx of [-2.8, -1.3, .2, 1.7]) add(dx, 1.5, 2.96, .1, 2.5, .1, '#dedccd');
+        add(2.4, 1.4, 2.86, .85, 2.6, .12, '#536f78');
+        add(-.7, 3, 3.05, 4.9, .22, 1.1, ['#8e749e', '#588b7b', '#b2784f'][variant % 3]);
+        for (let floor = 0; floor < floors; floor++) {
+          const y = 4.6 + floor * 2.8;
+          for (const dx of [-2.1, -.7, .7, 2.1]) {
+            add(dx, y, 2.86, .8, 1.4, .1, '#688c99');
+            add(dx, y, -3.26, .8, 1.4, .1, '#688c99');
+            add(-3.26, y, dx, .1, 1.4, .8, '#688c99');
+            add(3.26, y, dx, .1, 1.4, .8, '#688c99');
+          }
+          add(0, y - .75, 3.05, 6.6, .18, .7, '#e7e0d2');
+          add(0, y - .35, 3.38, 6.4, .6, .06, '#879796');
+        }
+        continue;
+      }
       if (level > 1 && lot.kind !== 'industrial') {
         const floors = level === 2 ? 3 : 7, height = floors * 2.8;
         add(0, height / 2, -.2, 6, height, 6, lot.kind === 'residential' ? '#d9d9cc' : '#b5c6ca');

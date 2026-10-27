@@ -1,0 +1,64 @@
+{
+  "date": "2026-10-27",
+  "node": "24.19.0",
+  "scenario": {
+    "buildings": 696,
+    "roadCells": 691,
+    "vehiclePoolLimit": 128
+  },
+  "units": "milliseconds",
+  "measurements": {
+    "before": [
+      {
+        "name": "um dia completo de economia, serviços e evolução",
+        "mean": 33.6695544444444,
+        "min": 30.320803999999953,
+        "max": 37.86368600000003,
+        "rme": 3.029522848732626,
+        "sampleCount": 18
+      },
+      {
+        "name": "recalcular indicadores e viagens em um novo estado",
+        "mean": 35.3546887222222,
+        "min": 29.09006700000009,
+        "max": 45.06207699999959,
+        "rme": 5.709750039337569,
+        "sampleCount": 18
+      },
+      {
+        "name": "passo de trânsito com pool limitado a 128 agentes",
+        "mean": 1.0435876104347723,
+        "min": 0.7386989999999969,
+        "max": 2.956466999999975,
+        "rme": 1.676629566711859,
+        "sampleCount": 575
+      }
+    ],
+    "after": [
+      {
+        "name": "um dia completo de economia, serviços e evolução",
+        "mean": 10.888259428571432,
+        "min": 8.297978000000057,
+        "max": 18.357302000000118,
+        "rme": 4.5148787946577205,
+        "sampleCount": 56
+      },
+      {
+        "name": "recalcular indicadores e viagens em um novo estado",
+        "mean": 11.446947415094337,
+        "min": 8.473256999999876,
+        "max": 16.16266799999994,
+        "rme": 4.216259967812986,
+        "sampleCount": 53
+      },
+      {
+        "name": "passo de trânsito com pool limitado a 128 agentes",
+        "mean": 1.0051541457286417,
+        "min": 0.7279029999999693,
+        "max": 3.1448709999999664,
+        "rme": 2.084325983586349,
+        "sampleCount": 597
+      }
+    ]
+  }
+}

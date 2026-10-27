@@ -1,25 +1,41 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useGame } from '../state/store';
 
-// Optional procedural UI sounds; no recordings, remote assets or background playback.
+/** Optional local synthesis, activated only by a user gesture and suspended offscreen. */
 export function AudioRuntime() {
-  const enabled = useGame(s => s.audio), spent = useGame(s => s.city.totalConstruction), event = useGame(s => s.city.event);
-  const context = useRef<AudioContext | null>(null);
-  const previous = useRef(spent);
   useEffect(() => {
-    if (!enabled) { previous.current = spent; return; }
-    const ctx = context.current ?? new AudioContext(); context.current = ctx;
-    void ctx.resume().catch(() => {});
-    if (spent !== previous.current || event) {
-      const gain = ctx.createGain(), osc = ctx.createOscillator();
-      osc.type = 'sine'; osc.frequency.setValueAtTime(event ? 440 : 620, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(event ? 660 : 380, ctx.currentTime + .18);
-      gain.gain.setValueAtTime(.025, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + .24);
-      osc.connect(gain); gain.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + .25);
-      osc.onended = () => { osc.disconnect(); gain.disconnect(); };
-    }
-    previous.current = spent;
-  }, [enabled, spent, event]);
-  useEffect(() => () => { void context.current?.close(); }, []);
+    let context: AudioContext | null = null, lastBuild = 0;
+    const unlock = () => {
+      if (!useGame.getState().audio || document.hidden || typeof AudioContext === 'undefined') return;
+      try { context ??= new AudioContext(); void context.resume().catch(() => {}); }
+      catch { /* Audio is optional; unsupported/blocked audio must never stop the game. */ }
+    };
+    const play = (notes: number[]) => {
+      if (!context || context.state !== 'running' || document.hidden || !useGame.getState().audio) return;
+      try {
+        const ctx = context;
+        notes.forEach((frequency, i) => {
+          const gain = ctx.createGain(), osc = ctx.createOscillator(), time = ctx.currentTime + i * .1;
+          osc.type = 'sine'; osc.frequency.setValueAtTime(frequency, time);
+          gain.gain.setValueAtTime(0, time); gain.gain.linearRampToValueAtTime(.025, time + .015); gain.gain.exponentialRampToValueAtTime(.001, time + .2);
+          osc.connect(gain); gain.connect(ctx.destination); osc.start(time); osc.stop(time + .21);
+          osc.onended = () => { osc.disconnect(); gain.disconnect(); };
+        });
+      } catch { /* A browser can suspend or close an audio context at any point. */ }
+    };
+    const unsubscribe = useGame.subscribe((state, previous) => {
+      if (!state.audio) { if (context?.state === 'running') void context.suspend().catch(() => {}); return; }
+      if (state.city.id !== previous.city.id) return;
+      if (state.city.event && state.city.event.id !== previous.city.event?.id) play([440, 554, 660]);
+      else if (state.city.totalConstruction > previous.city.totalConstruction && performance.now() - lastBuild > 100) { play([620, 380]); lastBuild = performance.now(); }
+    });
+    const visibility = () => { if (document.hidden && context?.state === 'running') void context.suspend().catch(() => {}); };
+    window.addEventListener('pointerdown', unlock, true); window.addEventListener('keydown', unlock, true);
+    document.addEventListener('visibilitychange', visibility);
+    return () => {
+      unsubscribe(); window.removeEventListener('pointerdown', unlock, true); window.removeEventListener('keydown', unlock, true); document.removeEventListener('visibilitychange', visibility);
+      void context?.close().catch(() => {});
+    };
+  }, []);
   return null;
 }

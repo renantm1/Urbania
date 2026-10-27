@@ -1,8 +1,8 @@
 # URBANIA — Build Your City
 
-Simulador urbano 3D para navegador desktop. **Versão 0.3:** trânsito, serviços públicos, infraestrutura, evolução de edifícios, políticas, eventos e transporte público integrados à economia. Modelos procedurais próprios, interface em português e salvamento local.
+Simulador urbano 3D para navegador desktop. **Versão 0.4:** zoneamento misto, primeiros passos guiados, prévias de construção consistentes, preferências persistentes e otimizações da simulação. Trânsito, serviços, infraestrutura, políticas e decisões continuam integrados à economia. Modelos procedurais próprios, interface em português e salvamento local.
 
-A [especificação original](docs/PROJECT.md) está preservada. O desenvolvimento segue os recortes por fases: a Fase 1 foi publicada inicialmente; esta versão adiciona os sistemas das Fases 2 e 3 e melhorias de desempenho e apresentação da Fase 4. Os limites desta implementação estão descritos ao final, sem tratar funcionalidades futuras como prontas.
+A [especificação original](docs/PROJECT.md) está preservada. O desenvolvimento segue os recortes por fases: a Fase 1 foi publicada inicialmente; as Fases 2 e 3 integram a simulação urbana; esta entrega avança a **Fase 4 — Polimento**, além de acrescentar o zoneamento misto previsto na especificação. Os limites desta implementação estão descritos ao final, sem tratar funcionalidades futuras como prontas.
 
 ## Executar
 
@@ -26,12 +26,14 @@ Todos os modelos, ícones e sons são locais ou procedurais. Não há fontes, te
 
 1. Dê um nome e comece com **R$ 2.000.000**. O território tem 56 × 56 lotes de 8 m.
 2. Escolha **Estradas**, clique no início e no fim do trecho. O alinhamento é feito pelo eixo predominante; cruzamentos se conectam automaticamente.
-3. Pinte zonas **residenciais**, **comerciais** e **industriais** próximas às ruas. Edifícios privados surgem a cada três dias conforme demanda, acesso e infraestrutura. A prefeitura paga pelo zoneamento, não pelos edifícios privados.
-4. Avance a simulação e equilibre moradias e empregos. As barras RCI indicam demanda por **novos lotes**. Mesmo com demanda residencial zero, casas existentes podem receber moradores se houver atratividade, serviços e empregos.
+3. Pinte zonas **residenciais**, **comerciais**, **industriais** ou **mistos** próximas às ruas. Edifícios privados surgem a cada três dias conforme demanda, acesso e infraestrutura. A prefeitura paga pelo zoneamento, não pelos edifícios privados.
+4. Avance a simulação e equilibre moradias e empregos. As barras RCIM indicam demanda por **novos lotes**. Mesmo com demanda residencial zero, casas existentes podem receber moradores se houver atratividade, serviços e empregos.
 5. Use **Energia e água** para ampliar a infraestrutura. Os contratos regionais iniciais atendem 120 unidades de consumo; não sustentam uma cidade grande sozinhos.
 6. Em **Serviços públicos**, instale escolas, hospital, segurança, bombeiros, prefeitura e parques. Uma instalação ocupa **2 × 2 lotes livres** e precisa de acesso à rua. O círculo de prévia mostra seu alcance.
 7. Acompanhe o orçamento, as coberturas e os alertas. A rede viária precisa estar conectada: energia, serviços e empregos em outra rede isolada não resolvem os problemas do bairro.
 8. Use **Marcos** para ver os desbloqueios, **Políticas** para mudar prioridades, **Mapas** para investigar lotes e **Eventos** para responder a decisões municipais.
+
+O guia de primeiros passos acompanha ruas, moradias conectadas, empregos, população e o primeiro fechamento mensal. Os botões abrem a ferramenta ou tela adequada. Pode ser ocultado e reativado nas configurações. Novos marcos populacionais geram avisos com os recursos liberados.
 
 O tempo usa meses de 30 dias, começando em janeiro de 2026. Em 1×, um segundo ativo equivale a um dia. Velocidades: 1×, 2× e 4×. Janelas, aba oculta e o botão de pausa interrompem a simulação. A câmera continua funcionando durante a pausa. Novos eventos abrem a central da prefeitura e pausam o tempo enquanto a janela está aberta; é possível fechar a janela e decidir depois.
 
@@ -48,12 +50,15 @@ O tempo usa meses de 30 dias, começando em janeiro de 2026. Em 1×, um segundo 
 | Pausar / continuar | Espaço |
 | Cancelar trecho, ferramenta ou janela | ESC |
 | Estradas / residencial / comercial / industrial / demolição | 1 / 2 / 3 / 4 / 5 |
+| Zona mista | 6 |
 | Inspecionar | V |
 | Recentralizar câmera | F |
 | Salvar diretamente no espaço 1, substituindo seu conteúdo | Ctrl+S / Cmd+S |
 | Abrir salvamentos | Ctrl+Shift+S / Cmd+Shift+S |
 
 Ruas de bairro custam R$ 150/m; avenidas, R$ 300/m. Cada célula tem 8 m. Zonear custa R$ 120 por lote. Demolir uma via, um edifício ou uma instalação pública custa R$ 180; limpar uma zona vazia é gratuito, inclusive se o caixa estiver negativo. A demolição de qualquer célula de uma instalação remove toda a instalação e suas linhas associadas. Edifícios existentes precisam ser demolidos antes de trocar o zoneamento. Não se constrói na água, fora do mapa nem sobre construções existentes. Trocar um tipo de via cobra a diferença absoluta de custo e não gera reembolso.
+
+A prévia usa as mesmas regras da obra: mostra preço real, lotes elegíveis e impedimentos antes do clique. Um pincel parcialmente sobre ruas ou construções cobra apenas os lotes que pode mudar. Instalações sem acesso viário, marcos bloqueados e demolição sem caixa aparecem como inválidos.
 
 ## Sistemas urbanos
 
@@ -73,6 +78,12 @@ O orçamento contém IPTU, atividades comercial e industrial **simuladas**, tran
 - Edifícios evoluem por até **três níveis**, com capacidade e arquitetura diferentes. Idade, energia, água, educação, saúde, segurança, valorização, satisfação e marcos precisam ser suficientes.
 
 As unidades de consumo e capacidade são abstratas para balanceamento do jogo; não são kWh, litros ou toneladas medidos de uma cidade real.
+
+### Bairros de uso misto
+
+A ferramenta **Mista** (tecla **6**, lilás) cria lojas no térreo e residências acima, com entradas, vitrines, marquises e varandas próprias. Os níveis 1/2/3 oferecem **8/24/48 vagas residenciais** e **4/12/24 empregos comerciais**. Moradores e trabalhadores são registrados separadamente: o emprego no térreo não acrescenta habitantes fictícios.
+
+A demanda mista é o menor valor entre residencial e comercial. Edifícios só surgem com demanda dos dois usos, acesso à rua, água e energia. Os moradores geram IPTU; lojas geram receita comercial. Ambos consomem serviços, participam da rede de empregos e podem gerar trajetos reais. Quem trabalha no próprio edifício não precisa de uma viagem de carro. Os mesmos requisitos de evolução e as consequências de enchentes e falta de infraestrutura se aplicam.
 
 ### Trânsito e ônibus
 
@@ -108,9 +119,9 @@ Comércio inicial continua disponível desde o começo para preservar o fluxo da
 
 Banco IndexedDB `urbania`, store `cities`. Três espaços manuais e um autosave global atualizado a cada minuto. Trocar domínio ou porta, limpar dados ou usar navegação privada pode tornar os saves indisponíveis. Exporte JSON para ter um backup portátil.
 
-**Saves versão 1 são lidos e migrados automaticamente para a versão 2**, preservando nome, ruas, lotes, edifícios, dinheiro, data e histórico. Os sistemas novos recebem valores iniciais; nenhuma instalação é construída ou debitada na migração. Novas cidades e novos salvamentos usam a versão 2. Financiamento, políticas, instalações, linhas, níveis e eventos ficam no save. Agentes visuais de trânsito são reconstruídos ao continuar a cidade; não são cidadãos individuais persistentes.
+**Saves versões 1 e 2 são lidos e migrados automaticamente para a versão 3**, preservando a cidade. A migração da versão 1 mantém nome, ruas, lotes, edifícios, dinheiro, data e histórico, com os sistemas novos em valores iniciais. A migração da versão 2 preserva também serviços, políticas, linhas e eventos. Nenhuma instalação é construída ou debitada na migração. Novas cidades e novos salvamentos usam a versão 3, que acrescenta o uso misto e seus trabalhadores no térreo. Agentes visuais de trânsito são reconstruídos ao continuar a cidade; não são cidadãos individuais persistentes.
 
-Importar ou carregar substitui a cidade em memória e deixa o relógio pausado. Salve uma cidade importada em um espaço para mantê-la. Ctrl+S substitui o espaço 1 diretamente; substituição e exclusão pela janela pedem confirmação. O autosave não é um arquivo permanente de todas as cidades. Se IndexedDB não funcionar, o jogo avisa e permite exportar JSON. Configurações gráficas e áudio pertencem à sessão, não ao save.
+Importar ou carregar substitui a cidade em memória e deixa o relógio pausado. Salve uma cidade importada em um espaço para mantê-la. Ctrl+S substitui o espaço 1 diretamente; substituição e exclusão pela janela pedem confirmação. O autosave não é um arquivo permanente de todas as cidades. Se IndexedDB não funcionar, o jogo avisa e permite exportar JSON. Configurações gráficas, áudio, guia e autosave ficam em `localStorage` neste navegador e são restaurados ao abrir o site. Não acompanham o JSON da cidade. Se o navegador bloquear esse armazenamento, as opções funcionam durante a sessão e o jogo informa que não conseguiu guardá-las.
 
 ## Desempenho e apresentação
 
@@ -119,10 +130,11 @@ Importar ou carregar substitui a cidade em memória e deixa o relógio pausado. 
 - Culling por lote de instâncias e LOD para detalhes de janelas na visão distante.
 - Geometria arquitetônica memorizada por footprint, variante e nível; ocupação não reconstrói fachadas.
 - Simulação econômica em passo fixo diário e trânsito em passos de 100 ms simulados, independentes do render.
+- Índices de serviços e empregadores por rede evitam filtrar toda a cidade a cada viagem. Alcance financiado e capacidade usam os mesmos consumidores; a prévia de cobertura acompanha o financiamento.
 - Cache de componentes e até 512 trajetos por topologia; sem A* por frame. Pool fixo de 128 veículos e amostra ponderada de viagens.
 - Render sob demanda durante pausa, menus e tela inicial. Câmera invalida frames enquanto se move.
 - **Modo de desempenho:** menos árvores decorativas, menor resolução e sombras menores.
-- **Monitor opcional:** FPS, chamadas, triângulos e agentes medidos pelo renderizador. O ciclo solar dura 120 dias, com sombras e janelas emissivas. Sons opcionais de construção/eventos são sintetizados localmente.
+- **Monitor opcional:** FPS, chamadas, triângulos e agentes medidos pelo renderizador. O ciclo solar dura 120 dias, com sombras e janelas emissivas. Sons opcionais de construção/eventos são sintetizados localmente, ativados por interação e suspensos com a aba oculta. A abertura de uma cidade não dispara um som de obra.
 
 Nesta escala não há necessidade de um Web Worker. Benchmarks de CPU não equivalem a FPS em GPU; testes de navegador usam renderização por software para CI.
 
@@ -164,7 +176,7 @@ tests/          fluxos Playwright no navegador
 
 ## Limites e expansões futuras
 
-O território ainda é fixo. Há duas categorias de via: rua e avenida, ambas com trânsito de mão dupla. Ainda não há zona mista, vias de mão única, seis faixas, rodovias, curvas construídas pelo jogador, pontes ou compra de setores. A* usa uma grade; as curvas dos veículos são suavização visual dentro dos cruzamentos. Semáforos são simplificados e determinísticos, sem fases adaptativas ou regras completas de prioridade.
+O território ainda é fixo. Há duas categorias de via: rua e avenida, ambas com trânsito de mão dupla. Ainda não há vias de mão única, seis faixas, rodovias, curvas construídas pelo jogador, pontes ou compra de setores. A* usa uma grade; as curvas dos veículos são suavização visual dentro dos cruzamentos. Semáforos são simplificados e determinísticos, sem fases adaptativas ou regras completas de prioridade.
 
 Serviços e população são agregados; não há simulação individual persistente de pedestres, transporte com passageiros individualizados, desastres físicos com fluidos ou rede elétrica/hidráulica separada das ruas. O ciclo solar é visual e não altera a demanda energética. Sons são sinais de interface, não trilha sonora. Estas limitações não são apresentadas como recursos já concluídos. Expansão de escala, novos tipos de via, simulações mais detalhadas e benchmarks em diferentes GPUs continuam como melhorias futuras.
 

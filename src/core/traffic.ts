@@ -1,6 +1,7 @@
 import type { Cell, City } from './types';
 import { findRoadPath, hash, keyOf, neighbors, toWorld } from './world';
 import { assessServices, componentOf, facilityAccess, footprint } from './services';
+import { hasHomes, hasCommerce, workplaceCapacity } from './zoning';
 
 export type VehicleKind = 'car' | 'truck' | 'service' | 'bus';
 export interface Trip { path: Cell[]; kind: VehicleKind; weight: number }
@@ -20,8 +21,13 @@ const planCache = new WeakMap<City, TrafficPlan>();
 export function planTraffic(city: City): TrafficPlan {
   const previous = planCache.get(city); if (previous) return previous;
   const coverage = assessServices(city);
-  const homes = Object.values(city.lots).filter(l => l.kind === 'residential' && (l.building?.occupants ?? 0) > 0);
-  const jobs = Object.values(city.lots).filter(l => l.kind !== 'residential' && l.building && Math.min(coverage.lots.get(keyOf(l))!.energy, coverage.lots.get(keyOf(l))!.water) >= .55);
+  const homes = Object.values(city.lots).filter(l => hasHomes(l) && (l.building?.occupants ?? 0) > 0);
+  const jobs = Object.values(city.lots).filter(l => workplaceCapacity(l) > 0 && l.building && Math.min(coverage.lots.get(keyOf(l))!.energy, coverage.lots.get(keyOf(l))!.water) >= .55);
+  const jobsByNetwork = new Map<number, typeof jobs>();
+  for (const job of jobs) {
+    const id = componentOf(job, city);
+    if (id !== undefined) { const group = jobsByNetwork.get(id) ?? []; group.push(job); jobsByNetwork.set(id, group); }
+  }
   const facilities = Object.values(city.facilities).filter(f => facilityAccess(f, city) && city.funding[f.kind] > 0);
   const trips: Trip[] = [], volumes: Record<string, number> = {};
   let disconnected = 0;
@@ -36,7 +42,8 @@ export function planTraffic(city: City): TrafficPlan {
   };
   for (const home of homes.slice(0, 96)) {
     const from = accessRoad(home, city);
-    const reachable = jobs.filter(job => componentOf(job, city) === componentOf(home, city));
+    const network = componentOf(home, city);
+    const reachable = network === undefined ? [] : jobsByNetwork.get(network) ?? [];
     // Try a deterministic destination, then other employers in case of a disconnected graph.
     const offset = Math.floor(hash(home.x, home.z, city.seed) * reachable.length);
     let served = false;
@@ -48,7 +55,8 @@ export function planTraffic(city: City): TrafficPlan {
     if (!served && jobs.length) disconnected++;
   }
   for (const industry of jobs.filter(l => l.kind === 'industrial').slice(0, 16)) {
-    const shop = jobs.find(l => l.kind === 'commercial' && l !== industry);
+    const network = componentOf(industry, city);
+    const shop = network === undefined ? undefined : jobsByNetwork.get(network)?.find(l => hasCommerce(l) && l !== industry);
     if (shop) add(accessRoad(industry, city), accessRoad(shop, city), 'truck', 4);
   }
   for (const f of facilities.slice(0, 16)) {

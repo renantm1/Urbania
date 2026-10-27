@@ -6,19 +6,21 @@ import { Grid, Line, OrbitControls } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import * as THREE from 'three';
 import { useGame } from '../state/store';
-import { CELL_SIZE, MAP_SIZE, ROAD_COST, ZONE_COST, brushCells, hash, inBounds, isBuildable, isWater, keyOf, riverCenter, riverWidth, roadLine, toCell, toWorld } from '../core/world';
+import { CELL_SIZE, MAP_SIZE, hash, inBounds, isWater, keyOf, riverCenter, riverWidth, toCell, toWorld } from '../core/world';
 import { Instances, coneGeometry, crownGeometry } from './Instances';
 import type { Part } from './Instances';
 import { Buildings } from './Buildings';
 import { Facilities } from './Facilities';
 import { Traffic, Signals } from './Traffic';
 import { CityLayers } from './CityLayers';
-import { FACILITIES, facilityAt, footprint } from '../core/services';
+import { FACILITIES, footprint } from '../core/services';
 import { trafficEngine } from '../core/traffic';
 import { Pedestrians } from './Pedestrians';
 import { SelectionTargets } from './SelectionTargets';
+import { ZONES } from '../core/zoning';
+import { previewConstruction } from '../core/construction';
 
-export const ZONE_COLORS = { residential: '#75b88a', commercial: '#6da8cc', industrial: '#dab465' };
+
 
 function CameraRig() {
   const ref = useRef<OrbitControlsImpl>(null);
@@ -28,6 +30,7 @@ function CameraRig() {
   const motion = useRef(new THREE.Vector3());
   const forward = useMemo(() => new THREE.Vector3(), []);
   const side = useMemo(() => new THREE.Vector3(), []);
+  const desired = useMemo(() => new THREE.Vector3(), []), move = useMemo(() => new THREE.Vector3(), []);
   useEffect(() => {
     camera.position.set(190, 240, 285);
     ref.current?.target.set(-26, 0, -6);
@@ -45,7 +48,7 @@ function CameraRig() {
     if (!controls) return;
     camera.getWorldDirection(forward); forward.y = 0; forward.normalize();
     side.crossVectors(forward, camera.up).normalize();
-    const desired = new THREE.Vector3();
+    desired.set(0, 0, 0);
     const active = useGame.getState().started && !useGame.getState().modal;
     if (active) {
       if (keys.current.has('KeyW') || keys.current.has('ArrowUp')) desired.add(forward);
@@ -56,7 +59,7 @@ function CameraRig() {
     desired.normalize().multiplyScalar(Math.max(35, camera.position.distanceTo(controls.target) * .42));
     motion.current.lerp(desired, 1 - Math.exp(-8 * dt));
     if (motion.current.lengthSq() > .02) invalidate();
-    const move = motion.current.clone().multiplyScalar(Math.min(dt, .05));
+    move.copy(motion.current).multiplyScalar(Math.min(dt, .05));
     controls.target.add(move); camera.position.add(move);
     const x = THREE.MathUtils.clamp(controls.target.x, -240, 240);
     const z = THREE.MathUtils.clamp(controls.target.z, -240, 240);
@@ -178,7 +181,7 @@ function Lots() {
   const lots = useGame(s => s.city.lots);
   const tool = useGame(s => s.tool);
   const parts = useMemo(() => Object.values(lots).filter(lot => !lot.building || tool !== 'select').map(lot => ({
-    position: [toWorld(lot.x), .25, toWorld(lot.z)] as [number, number, number], scale: [7.5, .08, 7.5] as [number, number, number], color: ZONE_COLORS[lot.kind],
+    position: [toWorld(lot.x), .25, toWorld(lot.z)] as [number, number, number], scale: [7.5, .08, 7.5] as [number, number, number], color: ZONES[lot.kind].color,
   })), [lots, tool]);
   return <Instances parts={parts} opacity={.48} shadow={false} />;
 }
@@ -205,17 +208,17 @@ function BuildSurface() {
   };
   const preview = useMemo(() => {
     if (!hover || !started || modal || tool === 'select') return { parts: [], valid: true };
-    const cells = tool === 'road' ? (anchor ? roadLine(anchor, hover) : [hover]) : tool === 'facility' ? footprint(hover) : brushCells(hover, brush);
-    const cost = tool === 'road' ? cells.reduce((sum, cell) => sum + (city.roads[keyOf(cell)]?.kind === roadKind ? 0 : city.roads[keyOf(cell)] ? Math.abs(ROAD_COST[roadKind] - ROAD_COST[city.roads[keyOf(cell)].kind]) : ROAD_COST[roadKind]), 0) : tool === 'facility' ? FACILITIES[facilityKind].cost : cells.length * ZONE_COST;
-    const valid = tool === 'bulldoze' || (cost <= city.treasury && cells.every(cell => isBuildable(cell) && !facilityAt(city, cell) && (tool === 'road' ? !city.lots[keyOf(cell)]?.building : !city.roads[keyOf(cell)] && !city.lots[keyOf(cell)]?.building)));
-    const color = !valid || tool === 'bulldoze' ? '#e9957d' : tool === 'road' ? '#cee8d1' : tool === 'facility' ? FACILITIES[facilityKind].color : ZONE_COLORS[tool];
-    return { parts: cells.filter(inBounds).map(cell => ({ position: [toWorld(cell.x), .5, toWorld(cell.z)] as [number, number, number], scale: [7.7, .15, 7.7] as [number, number, number], color })), valid };
+    const plan = previewConstruction(city, tool, hover, { anchor, roadKind, facilityKind, brush });
+    const changes = new Set(plan.changes.map(keyOf));
+    const color = plan.error || tool === 'bulldoze' ? '#e9957d' : tool === 'road' ? '#cee8d1' : tool === 'facility' ? FACILITIES[facilityKind].color : ZONES[tool].color;
+    return { parts: plan.cells.filter(inBounds).map(cell => ({ position: [toWorld(cell.x), .5, toWorld(cell.z)] as [number, number, number], scale: [7.7, .15, 7.7] as [number, number, number], color: plan.error || changes.has(keyOf(cell)) ? color : '#949a90' })), valid: !plan.error };
   }, [hover, started, modal, tool, brush, anchor, city, roadKind, facilityKind]);
   return <>
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, .35, 0]}
       onPointerMove={onMove} onPointerLeave={() => useGame.getState().setHover(null)}
       onPointerDown={e => {
         if (e.button !== 0 || !started || modal) return;
+        if (e.nativeEvent.target instanceof HTMLCanvasElement) e.nativeEvent.target.focus({ preventScroll: true });
         e.stopPropagation(); const cell = cellOf(e);
         if (!inBounds(cell)) return;
         painting.current = true; lastPaint.current = keyOf(cell); useGame.getState().interact(cell);
@@ -280,7 +283,7 @@ export function Scene() {
   return <SceneBoundary>
     {!ready && <div className="world-loading">Preparando seu território<span /></div>}
     <Canvas frameloop={running ? 'always' : 'demand'} shadows={shadows ? 'soft' : false} dpr={low ? 1 : [1, 1.7]} gl={{ antialias: true, powerPreference: 'high-performance' }}
-      camera={{ position: [190, 240, 285], fov: 42, near: 1, far: 1600 }} onCreated={() => setReady(true)}
+      camera={{ position: [190, 240, 285], fov: 42, near: 1, far: 1600 }} onCreated={({ gl }) => { gl.domElement.tabIndex = 0; gl.domElement.setAttribute('aria-label', 'Território 3D da cidade. WASD move, scroll aproxima, clique constrói.'); setReady(true); }}
       fallback={<div className="webgl-error">Seu navegador precisa oferecer WebGL 2 para jogar Urbania.</div>}
       onContextMenu={e => e.preventDefault()}>
       <Suspense fallback={null}><World /></Suspense>

@@ -56,7 +56,7 @@ describe('políticas, eventos e compatibilidade', () => {
     const city = developedCity(false);
     const legacy = { version: 1, id: city.id, name: city.name, seed: city.seed, roads: city.roads, lots: Object.fromEntries(Object.entries(city.lots).map(([k, l]) => [k, { ...l, building: l.building ? { variant: l.building.variant, age: l.building.age, occupants: l.building.occupants } : undefined }])), treasury: city.treasury, day: city.day, taxRate: city.taxRate, history: city.history, totalConstruction: city.totalConstruction };
     const migrated = validateCity(legacy);
-    expect(migrated.version).toBe(2); expect(migrated.name).toBe(city.name);
+    expect(migrated.version).toBe(3); expect(migrated.name).toBe(city.name);
     expect(migrated.roads).toEqual(city.roads); expect(migrated.day).toBe(city.day); expect(migrated.treasury).toBe(city.treasury);
     expect(migrated.facilities).toEqual({}); expect(migrated.peakPopulation).toBe(getMetrics(city).population);
     expect(migrated.funding.power).toBe(100); expect(validateCity(migrated)).toEqual(migrated);
@@ -74,6 +74,6 @@ describe('políticas, eventos e compatibilidade', () => {
       { ...city, event: { id: 1, kind: 'investment', choice: 50 } },
       { ...city, milestoneScale: 0 },
     ]) expect(() => validateCity(corrupted)).toThrow();
-    expect(validateCity(createCity()).version).toBe(2);
+    expect(validateCity(createCity()).version).toBe(3);
   });
 });

@@ -1,4 +1,4 @@
-export type ZoneKind = 'residential' | 'commercial' | 'industrial';
+export type ZoneKind = 'residential' | 'commercial' | 'industrial' | 'mixed';
 export type RoadKind = 'street' | 'avenue';
 export type Tool = 'select' | 'road' | ZoneKind | 'bulldoze' | 'facility';
 export type FacilityKind = 'power' | 'water' | 'waste' | 'school' | 'hospital' | 'police' | 'fire' | 'cityhall' | 'park' | 'bus';
@@ -12,6 +12,8 @@ export interface Road extends Cell { kind: RoadKind }
 export interface Building {
   variant: number;
   occupants: number;
+  /** Mixed buildings keep residents and storefront workers separate. */
+  workers?: number;
   age: number;
   level?: 1 | 2 | 3;
 }
@@ -24,7 +26,7 @@ export interface MonthRecord {
   balance: number;
 }
 export interface City {
-  version: 2;
+  version: 3;
   id: string;
   name: string;
   seed: number;

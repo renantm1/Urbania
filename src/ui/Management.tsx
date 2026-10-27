@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { BusFront, Check, Droplets, Flame, GraduationCap, HeartPulse, Landmark, Layers3, LockKeyhole, Map, Shield, Sparkles, Trash2, Trees, Zap } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { FacilityKind, Layer, PolicyKind } from '../core/types';
-import { FACILITIES, facilityAccess, MILESTONES, POLICY_INFO, unlocked } from '../core/services';
+import { FACILITIES, facilityAccess, serviceRadius, MILESTONES, POLICY_INFO, unlocked } from '../core/services';
 import { getMetrics } from '../core/simulation';
 import { EVENT_INFO } from '../core/events';
 import { planTraffic, trafficEngine } from '../core/traffic';
@@ -31,7 +31,7 @@ function FacilityCard({ kind }: { kind: FacilityKind }) {
   const active = installations.filter(f => facilityAccess(f, state.city)).length;
   const available = unlocked(state.city, spec.unlock);
   return <article className="facility-card"><div className="facility-card-heading"><span className="facility-symbol" style={{ color: spec.color }}><Icon size={23} /></span><div><h3>{spec.name}</h3><small>{installations.length} instalada(s) · {active} conectada(s)</small></div></div>
-    <div className="facility-spec"><span>Capacidade <strong>{number(Math.round(spec.capacity * state.city.funding[kind] / 100))}</strong></span><span>Alcance <strong>{spec.radius * 8} m</strong></span><span>Manutenção <strong>{money(Math.round(spec.upkeep * state.city.funding[kind] / 100))}/mês</strong></span></div>
+    <div className="facility-spec"><span>Capacidade <strong>{number(Math.round(spec.capacity * state.city.funding[kind] / 100))}</strong></span><span>Alcance <strong>{Math.round(serviceRadius(state.city, kind) * 8)} m</strong></span><span>Manutenção <strong>{money(Math.round(spec.upkeep * state.city.funding[kind] / 100))}/mês</strong></span></div>
     <label className="funding-control"><span>Financiamento <strong>{state.city.funding[kind]}%</strong></span><input aria-label={`Financiamento ${spec.name}`} type="range" min="0" max="150" step="10" value={state.city.funding[kind]} onChange={e => state.setFunding(kind, Number(e.target.value))} /></label>
     <button className="secondary-button" disabled={!available || state.city.treasury < spec.cost} onClick={() => state.selectFacility(kind)}>{available ? <Map size={14} /> : <LockKeyhole size={14} />}{available ? `Construir · ${money(spec.cost)}` : `Marco: ${number(Math.round(spec.unlock * state.city.milestoneScale))} habitantes`}</button>
   </article>;

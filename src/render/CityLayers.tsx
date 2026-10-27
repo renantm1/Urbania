@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import * as THREE from 'three';
 import { useGame } from '../state/store';
-import { FACILITIES, facilityAt, layerValue } from '../core/services';
+import { FACILITIES, facilityAt, layerValue, serviceRadius } from '../core/services';
 import { planTraffic } from '../core/traffic';
 import { toWorld } from '../core/world';
 import { Instances } from './Instances';
@@ -23,5 +23,5 @@ export function CityLayers() {
   }, [city, layer]);
   const selectedFacility = selected ? facilityAt(city, selected)?.[1] : null;
   const f = tool === 'facility' && hover ? { ...hover, kind } : selectedFacility;
-  return <><Instances parts={parts} opacity={.65} shadow={false} />{f && <mesh rotation={[-Math.PI / 2, 0, 0]} position={[toWorld(f.x) + 4, .28, toWorld(f.z) + 4]} raycast={() => {}}><circleGeometry args={[FACILITIES[f.kind].radius * 8, 72]} /><meshBasicMaterial color={FACILITIES[f.kind].color} transparent opacity={.065} depthWrite={false} /></mesh>}</>;
+  return <><Instances parts={parts} opacity={.65} shadow={false} />{f && city.funding[f.kind] > 0 && <mesh rotation={[-Math.PI / 2, 0, 0]} position={[toWorld(f.x), .28, toWorld(f.z)]} raycast={() => {}}><circleGeometry args={[serviceRadius(city, f.kind) * 8, 72]} /><meshBasicMaterial color={FACILITIES[f.kind].color} transparent opacity={.065} depthWrite={false} /></mesh>}</>;
 }

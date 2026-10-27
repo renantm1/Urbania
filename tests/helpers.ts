@@ -3,13 +3,19 @@ import type { Page } from '@playwright/test';
 import { PerspectiveCamera, Vector3 } from 'three';
 import type { City } from '../src/core/types';
 
-export async function cellClick(page: Page, x: number, z: number) {
+async function cellPoint(page: Page, x: number, z: number) {
   const bounds = await page.locator('canvas').boundingBox();
   if (!bounds) throw new Error('Canvas não encontrado');
   const camera = new PerspectiveCamera(42, bounds.width / bounds.height, 1, 1600);
   camera.position.set(190, 240, 285); camera.lookAt(-26, 0, -6); camera.updateMatrixWorld();
   const p = new Vector3((x - 27.5) * 8, .35, (z - 27.5) * 8).project(camera);
-  await page.mouse.click(bounds.x + (p.x + 1) * bounds.width / 2, bounds.y + (1 - p.y) * bounds.height / 2);
+  return { x: bounds.x + (p.x + 1) * bounds.width / 2, y: bounds.y + (1 - p.y) * bounds.height / 2 };
+}
+export async function cellClick(page: Page, x: number, z: number) {
+  const point = await cellPoint(page, x, z); await page.mouse.click(point.x, point.y);
+}
+export async function cellHover(page: Page, x: number, z: number) {
+  const point = await cellPoint(page, x, z); await page.mouse.move(point.x, point.y);
 }
 
 export async function start(page: Page) {

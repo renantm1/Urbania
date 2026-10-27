@@ -54,7 +54,7 @@ test('infraestrutura, eventos, políticas, evolução e ônibus persistem no mun
   await page.keyboard.press('Control+s');
   await expect(page.getByRole('status')).toContainText('Cidade salva');
   const city = await readSlot(page);
-  expect(city.version).toBe(2); expect(city.funding.power).toBe(150); expect(city.policies.recycling).toBe(true);
+  expect(city.version).toBe(3); expect(city.funding.power).toBe(150); expect(city.policies.recycling).toBe(true);
   expect(city.facilities['21,21'].kind).toBe('power'); expect(city.busLines).toHaveLength(1);
   expect(city.eventHistory[0].choice).toBe(1); expect(city.lots['23,19'].building!.level).toBeGreaterThanOrEqual(2);
   expect(getMetrics(city).coverage.energy).toBe(1); expect(getMetrics(city).utilities.waste.demand).toBeLessThan(getMetrics({ ...city, policies: { ...city.policies, recycling: false } }).utilities.waste.demand);
@@ -71,7 +71,7 @@ test('save da versão publicada anterior é importado e migrado sem perder a cid
   await expect(page.getByTestId('population')).toHaveText('6');
   await page.keyboard.press('Control+s'); await expect(page.getByRole('status')).toContainText('Cidade salva');
   const restored = await readSlot(page);
-  expect(restored.version).toBe(2); expect(restored.treasury).toBe(legacy.treasury); expect(restored.day).toBe(18);
+  expect(restored.version).toBe(3); expect(restored.treasury).toBe(legacy.treasury); expect(restored.day).toBe(18);
   expect(restored.facilities).toEqual({}); expect(restored.lots['20,19'].building!.occupants).toBe(6);
 });
 

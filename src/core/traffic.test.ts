@@ -58,4 +58,15 @@ describe('rotas e agentes de trânsito', () => {
     expect(() => addBusLine(line, '32,21', '29,21')).toThrow();
     expect(() => addBusLine(city, '29,21', '29,21')).toThrow();
   });
+  it('caminhões escolhem comércio na própria rede quando a primeira loja está isolada', () => {
+    let city = buildRoad(createCity(), { x: 10, z: 20 }, { x: 20, z: 20 }, 'street').city;
+    city = buildRoad(city, { x: 30, z: 20 }, { x: 32, z: 20 }, 'street').city;
+    city = { ...city, lots: {
+      '30,19': { x: 30, z: 19, kind: 'commercial', building: { variant: 0, occupants: 0, age: 20 } },
+      '10,19': { x: 10, z: 19, kind: 'industrial', building: { variant: 0, occupants: 0, age: 20 } },
+      '20,19': { x: 20, z: 19, kind: 'mixed', building: { variant: 0, occupants: 0, workers: 0, age: 20 } },
+    } };
+    const truck = planTraffic(city).trips.find(t => t.kind === 'truck');
+    expect(truck?.path[0]).toEqual({ x: 10, z: 20 }); expect(truck?.path.at(-1)).toEqual({ x: 20, z: 20 });
+  });
 });

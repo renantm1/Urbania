@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useLayoutEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { trafficEngine, VEHICLE_LIMIT } from '../core/traffic';
@@ -52,16 +52,27 @@ export function Signals() {
   const roads = useGame(s => s.city.roads);
   const ref = useRef<THREE.InstancedMesh>(null);
   const junctions = useMemo(() => Object.values(roads).filter(r => neighbors(r).filter(n => roads[keyOf(n)]).length >= 3), [roads]);
-  useFrame(() => {
+  const phase = useRef(-1);
+  useLayoutEffect(() => {
     if (!ref.current) return;
     junctions.forEach((r, i) => {
       for (let axis = 0; axis < 2; axis++) {
         dummy.position.set(toWorld(r.x) + (axis ? -3.2 : 3.2), 3.1, toWorld(r.z) + 3.2); dummy.rotation.set(0, 0, 0); dummy.scale.set(.45, .65, .45); dummy.updateMatrix();
-        const index = i * 2 + axis; ref.current!.setMatrixAt(index, dummy.matrix); ref.current!.setColorAt(index, tint.set(Math.floor(trafficEngine.clock / 5) % 2 === axis ? '#83b28b' : '#c77d67'));
+        ref.current!.setMatrixAt(i * 2 + axis, dummy.matrix);
       }
     });
-    ref.current.instanceMatrix.needsUpdate = true; if (ref.current.instanceColor) ref.current.instanceColor.needsUpdate = true;
+    ref.current.instanceMatrix.needsUpdate = true;
     ref.current.computeBoundingSphere();
+    phase.current = -1;
+  }, [junctions]);
+  useFrame(() => {
+    const nextPhase = Math.floor(trafficEngine.clock / 5) % 2;
+    if (!ref.current || nextPhase === phase.current) return;
+    junctions.forEach((_, i) => {
+      for (let axis = 0; axis < 2; axis++) ref.current!.setColorAt(i * 2 + axis, tint.set(nextPhase === axis ? '#83b28b' : '#c77d67'));
+    });
+    if (ref.current.instanceColor) ref.current.instanceColor.needsUpdate = true;
+    phase.current = nextPhase;
   });
   if (!junctions.length) return null;
   return <instancedMesh ref={ref} args={[boxGeometry, undefined, junctions.length * 2]} raycast={() => {}}><meshStandardMaterial emissive="#b1a585" emissiveIntensity={.35} /></instancedMesh>;

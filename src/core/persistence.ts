@@ -13,7 +13,7 @@ export function validateCity(input: unknown): City {
   const invalid = () => { throw new Error('Arquivo de cidade inválido ou de versão incompatível.'); };
   if (!record(input)) return invalid();
   const c = input;
-  if (![1, 2].includes(c.version as number) || typeof c.id !== 'string' || c.id.length > 100 || !c.id.length || typeof c.name !== 'string' || !c.name.trim() || c.name.length > 40 || !integer(c.seed, 0, 1e9) || !integer(c.day, 0, 1e8) || !finite(c.treasury, -1e12, 1e12) || !finite(c.totalConstruction, 0, 1e12) || !integer(c.taxRate, 1, 20) || !record(c.roads) || !record(c.lots) || !Array.isArray(c.history) || c.history.length > 60) return invalid();
+  if (![1, 2, 3].includes(c.version as number) || typeof c.id !== 'string' || c.id.length > 100 || !c.id.length || typeof c.name !== 'string' || !c.name.trim() || c.name.length > 40 || !integer(c.seed, 0, 1e9) || !integer(c.day, 0, 1e8) || !finite(c.treasury, -1e12, 1e12) || !finite(c.totalConstruction, 0, 1e12) || !integer(c.taxRate, 1, 20) || !record(c.roads) || !record(c.lots) || !Array.isArray(c.history) || c.history.length > 60) return invalid();
   if (Object.keys(c.roads).length > 3136 || Object.keys(c.lots).length > 3136) return invalid();
   for (const [key, value] of Object.entries(c.roads)) {
     if (!record(value) || !integer(value.x, 0, 55) || !integer(value.z, 0, 55) || !['street', 'avenue'].includes(value.kind as string)) return invalid();
@@ -21,11 +21,12 @@ export function validateCity(input: unknown): City {
     if (key !== keyOf(cell) || !inBounds(cell) || isWater(cell)) return invalid();
   }
   for (const [key, value] of Object.entries(c.lots)) {
-    if (!record(value) || !integer(value.x, 0, 55) || !integer(value.z, 0, 55) || !['residential', 'commercial', 'industrial'].includes(value.kind as string)) return invalid();
+    if (!record(value) || !integer(value.x, 0, 55) || !integer(value.z, 0, 55) || !(c.version === 3 ? ['residential', 'commercial', 'industrial', 'mixed'] : ['residential', 'commercial', 'industrial']).includes(value.kind as string)) return invalid();
     const cell = { x: value.x, z: value.z };
     if (key !== keyOf(cell) || isWater(cell) || c.roads[key]) return invalid();
     if (value.building !== undefined) {
-      if (!record(value.building) || !integer(value.building.variant, 0, 11) || !integer(value.building.level ?? 1, 1, c.version === 1 ? 1 : 3) || !integer(value.building.occupants, 0, (value.kind === 'residential' ? 6 + value.building.variant % 3 * 2 : value.kind === 'commercial' ? 8 : 16) * [1, 3, 6][Number(value.building.level ?? 1) - 1]) || !integer(value.building.age, 0, 1e8)) return invalid();
+      if (!record(value.building) || !integer(value.building.variant, 0, 11) || !integer(value.building.level ?? 1, 1, c.version === 1 ? 1 : 3) || !integer(value.building.occupants, 0, (value.kind === 'residential' ? 6 + value.building.variant % 3 * 2 : value.kind === 'mixed' ? 8 : value.kind === 'commercial' ? 8 : 16) * [1, 3, 6][Number(value.building.level ?? 1) - 1]) || !integer(value.building.age, 0, 1e8)) return invalid();
+      if (value.building.workers !== undefined && (value.kind !== 'mixed' || !integer(value.building.workers, 0, 4 * [1, 3, 6][Number(value.building.level ?? 1) - 1]))) return invalid();
     }
   }
   for (const row of c.history) {
@@ -34,8 +35,9 @@ export function validateCity(input: unknown): City {
   let data = JSON.parse(JSON.stringify(c)) as City;
   if (c.version === 1) {
     const population = Object.values(data.lots).reduce((sum, l) => sum + (l.kind === 'residential' ? l.building?.occupants ?? 0 : 0), 0);
-    data = { ...data, version: 2, facilities: {}, funding: defaultFunding(), policies: defaultPolicies(), busLines: [], peakPopulation: population, milestoneScale: .1, event: null, eventHistory: [], modifiers: { investmentUntil: 0, recessionUntil: 0, floodUntil: 0 } };
+    data = { ...data, version: 3, facilities: {}, funding: defaultFunding(), policies: defaultPolicies(), busLines: [], peakPopulation: population, milestoneScale: .1, event: null, eventHistory: [], modifiers: { investmentUntil: 0, recessionUntil: 0, floodUntil: 0 } };
   }
+  data.version = 3;
   if (!record(data.facilities) || Object.keys(data.facilities).length > 784 || !record(data.funding) || !record(data.policies) || !integer(data.peakPopulation, 0, 1e7) || !finite(data.milestoneScale, .05, 2) || !Array.isArray(data.busLines) || data.busLines.length > 100 || !Array.isArray(data.eventHistory) || data.eventHistory.length > 20 || !record(data.modifiers)) return invalid();
   if (Object.keys(data.funding).length !== Object.keys(FACILITIES).length || Object.keys(data.policies).length !== Object.keys(defaultPolicies()).length) return invalid();
   const occupied = new Set<string>();
@@ -93,5 +95,5 @@ export function exportCity(city: City) {
 export async function importCity(file: File): Promise<City> {
   if (file.size > 5_000_000) throw new Error('O arquivo deve ter até 5 MB.');
   try { return validateCity(JSON.parse(await file.text())); }
-  catch { throw new Error('Não foi possível importar. Escolha um save JSON válido do Urbania (versões 1 ou 2).'); }
+  catch { throw new Error('Não foi possível importar. Escolha um save JSON válido do Urbania (versões 1, 2 ou 3).'); }
 }
